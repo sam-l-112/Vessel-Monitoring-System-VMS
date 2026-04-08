@@ -1,29 +1,58 @@
 
 services:
-  db: 
-    mariadb:
-      image: mariadb:10.11
-      container_name: vms-mariadb
+  db:
+    image: mariadb:10.11
+    container_name: vms-mariadb
+    environment:
       MARIADB_ROOT_PASSWORD: your_root_password
       MARIADB_DATABASE: vms_db
       MARIADB_USER: vms_user
       MARIADB_PASSWORD: vms_password
+    ports:
+      - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ./logs/mariadb:/var/log/mysql
+    restart: unless-stopped
+    networks:
+      - vms-network
 
-  web: 
-    ngixn:
-      image: nginx:latest 
-      container_name: vms-nginx
-      ports:
-        - "8080:8080"
-      volumes:
-        - ./infra/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
-        - ./frontend:/usr/share/nginx/html:ro 
-        - ./logs/nginx:/var/log/nginx
-      depends_on:
-         - db
-volumes:
-  db_data:
-      
+  api:
+    build:
+      context: ./backend/golang-api
+      dockerfile: Dockerfile
+    container_name: vms-api
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=vms_user
+      - DB_PASSWORD=vms_password
+      - DB_NAME=vms_db
+      - SERVER_PORT=3000
+      - SERVER_HOST=0.0.0.0
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - vms-network
+
+  web:
+    image: nginx:latest
+    container_name: vms-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./infra/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - vms-network
+
+networks:
+  vms-network:
+    driver: bridge

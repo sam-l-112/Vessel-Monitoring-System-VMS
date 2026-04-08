@@ -28,7 +28,7 @@ sudo nginx -t
 
 ## 2. 重新載入設定
 ```bash
-sudo sytemctl reload nginx
+sudo systemctl reload nginx
 ```
 
 ## 啟動
@@ -40,7 +40,10 @@ sudo systemctl start nginx
 ```bash
 sudo systemctl status nginx
 ```
-
+## port nginx 檢查
+```bash
+sudo ss -tunlp | grep -E ':3000|:8080'
+```
 
 ---
 # download
