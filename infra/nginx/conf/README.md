@@ -1,6 +1,9 @@
 # nginx 
 nginx config setting 
-file 位置 : /etc/nginx/nginx.conf
+file 位置 :
+```bash
+/etc/nginx/nginx.conf
+```
 
 
 ---
