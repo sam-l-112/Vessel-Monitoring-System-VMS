@@ -1,8 +1,44 @@
 # nginx 
-nginx config setting 
+## nginx config setting 
 file 位置 :
 ```bash
 /etc/nginx/nginx.conf
+```
+or 
+```bash
+/etc/nginx/sites-available/
+```
+
+## 不同域名 config file
+```bash
+/etc/nginx/conf.d/*.conf
+```
+```bash
+/etc/nginx/conf.d/kylemocode.com.conf
+```
+## port 網頁設定
+```bash
+sudo nano /etc/nginx/sites-available/default
+```
+
+## 1. 檢查語法是否有誤
+```bash
+sudo nginx -t
+```
+
+## 2. 重新載入設定
+```bash
+sudo sytemctl reload nginx
+```
+
+## 啟動
+```bash
+sudo systemctl start nginx
+```
+
+## 查看狀態
+```bash
+sudo systemctl status nginx
 ```
 
 
