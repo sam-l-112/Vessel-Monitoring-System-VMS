@@ -53,7 +53,7 @@ createApp({
 
                     // Redirect to dashboard after successful login
                     setTimeout(() => {
-                        window.location.href = '../index.html';
+                        window.location.href = './dashboard.html';
                     }, 1500);
 
                 } else {
@@ -69,8 +69,8 @@ createApp({
         },
 
         async loginAPI(credentials) {
-            // API endpoint - adjust based on your Go backend
-            const apiUrl = 'http://192.168.50.75/api/login'; // Adjust port as needed
+            // API endpoint - updated to use new auth endpoint
+            const apiUrl = 'http://192.168.50.75/api/auth/login'; // Updated to use auth endpoint
 
             try {
                 const response = await axios.post(apiUrl, {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"vms-api/src/database"
@@ -154,6 +155,73 @@ func (lc *LoginController) GetUsers(w http.ResponseWriter, r *http.Request) {
 		Success: true,
 		Data:    users,
 		Message: "Users retrieved successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetUserProfile returns the current user's profile
+func (lc *LoginController) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Simple token validation (replace with proper JWT validation in production)
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Authorization header required",
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Extract username from token (simplified - in production use proper JWT parsing)
+	// For now, assume token format: vms_token_username_timestamp
+	parts := strings.Split(authHeader, "_")
+	if len(parts) < 3 {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Invalid token format",
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+	username := parts[2] // Extract username from token
+
+	// Query user profile
+	var user models.User
+	err := database.DB.QueryRow(`
+		SELECT id, username, email, role, is_active, created_at, updated_at
+		FROM users
+		WHERE username = ? AND is_active = true`,
+		username).Scan(
+		&user.ID, &user.Username, &user.Email,
+		&user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			response := models.APIResponse{
+				Success: false,
+				Message: "User not found",
+			}
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		response := models.APIResponse{
+			Success: false,
+			Message: "Database error",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := models.APIResponse{
+		Success: true,
+		Data:    user,
+		Message: "User profile retrieved successfully",
 	}
 	json.NewEncoder(w).Encode(response)
 }

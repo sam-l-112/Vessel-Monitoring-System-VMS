@@ -6,14 +6,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// LoginRoutes sets up login-related routes
+// LoginRoutes sets up authentication and user management routes
 func LoginRoutes(router *mux.Router) {
 	loginController := &controllers.LoginController{}
 
 	// Authentication routes
-	router.HandleFunc("/api/login", loginController.Login).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/auth/login", loginController.Login).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/auth/signin", loginController.Login).Methods("POST", "OPTIONS") // Alternative endpoint
 
-	// User management routes (protected)
-	router.HandleFunc("/api/users", loginController.GetUsers).Methods("GET")
+	// User management routes
+	router.HandleFunc("/api/users/list", loginController.GetUsers).Methods("GET")          // Get all users
+	router.HandleFunc("/api/users/profile", loginController.GetUserProfile).Methods("GET") // Get current user profile (placeholder)
 }

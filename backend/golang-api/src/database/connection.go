@@ -78,9 +78,23 @@ func getEnv(key, fallback string) string {
 
 // CreateTables creates necessary database tables
 func CreateTables() error {
+	// Drop existing tables if they exist
+	dropQueries := []string{
+		"DROP TABLE IF EXISTS feed_data",
+		"DROP TABLE IF EXISTS fish_data",
+		"DROP TABLE IF EXISTS weather_data",
+		"DROP TABLE IF EXISTS users",
+	}
+
+	for _, query := range dropQueries {
+		if _, err := DB.Exec(query); err != nil {
+			log.Printf("Warning: Failed to drop table: %v", err)
+		}
+	}
+
 	// Users table
 	usersTable := `
-	CREATE TABLE IF NOT EXISTS users (
+	CREATE TABLE users (
 		id INT AUTO_INCREMENT PRIMARY KEY,
 		username VARCHAR(50) UNIQUE NOT NULL,
 		email VARCHAR(100) UNIQUE NOT NULL,

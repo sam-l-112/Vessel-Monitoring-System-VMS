@@ -80,6 +80,7 @@ time.Now().Format(time.RFC3339))
 
 // Setup routes from packages
 router.LoginRoutes(r)
+router.DataRoutes(r)
 
 // Static file server for documentation (optional)
 r.PathPrefix("/docs/").Handler(http.StripPrefix("/docs/", http.FileServer(http.Dir("./docs/"))))

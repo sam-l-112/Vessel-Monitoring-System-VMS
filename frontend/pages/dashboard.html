@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Vessel Monitoring System - 養殖監控系統">
+    <meta name="keywords" content="養殖,監控,魚類,數據分析">
+    <meta name="author" content="VMS Team">
+
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/Dashboard.css">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <title>Vessel Monitoring System - 養殖監控系統</title>
+</head>
+<body>
+    <div id="app" class="fade-in">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand d-flex align-items-center" href="#">
+                    <i class="fas fa-fish me-2"></i>
+                    VMS - 養殖監控系統
+                </a>
+                <button class="navbar-toggler" type="button" @click="toggleSidebar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="showSection('dashboard')">
+                                <i class="fas fa-tachometer-alt me-1"></i>儀表板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="showSection('analytics')">
+                                <i class="fas fa-chart-line me-1"></i>數據分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="showSection('settings')">
+                                <i class="fas fa-cog me-1"></i>設定
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="logout">
+                                <i class="fas fa-sign-out-alt me-1"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <nav class="col-md-2 d-none d-md-block sidebar p-3" :class="{ show: sidebarVisible }">
+                    <div class="sidebar-sticky">
+                        <ul class="nav flex-column">
+                            <li class="nav-item mb-2">
+                                <a class="nav-link" href="#" @click="showSection('dashboard')" :class="{ active: currentSection === 'dashboard' }">
+                                    <i class="fas fa-tachometer-alt me-2"></i>儀表板
+                                </a>
+                            </li>
+                            <li class="nav-item mb-2">
+                                <a class="nav-link" href="#" @click="showSection('fish-data')" :class="{ active: currentSection === 'fish-data' }">
+                                    <i class="fas fa-fish me-2"></i>魚類數據
+                                </a>
+                            </li>
+                            <li class="nav-item mb-2">
+                                <a class="nav-link" href="#" @click="showSection('weather')" :class="{ active: currentSection === 'weather' }">
+                                    <i class="fas fa-cloud-sun me-2"></i>天氣資訊
+                                </a>
+                            </li>
+                            <li class="nav-item mb-2">
+                                <a class="nav-link" href="#" @click="showSection('feed')" :class="{ active: currentSection === 'feed' }">
+                                    <i class="fas fa-seedling me-2"></i>飼料管理
+                                </a>
+                            </li>
+                            <li class="nav-item mb-2">
+                                <a class="nav-link" href="#" @click="showSection('analytics')" :class="{ active: currentSection === 'analytics' }">
+                                    <i class="fas fa-chart-bar me-2"></i>數據分析
+                                </a>
+                            </li>
+                            <li class="nav-item mb-2">
+                                <a class="nav-link" href="#" @click="showSection('alerts')" :class="{ active: currentSection === 'alerts' }">
+                                    <i class="fas fa-bell me-2"></i>警報通知
+                                </a>
+                            </li>
+                            <li class="nav-item mb-2">
+                                <a class="nav-link" href="#" @click="showSection('settings')" :class="{ active: currentSection === 'settings' }">
+                                    <i class="fas fa-cog me-2"></i>系統設定
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <!-- Main Content -->
+                <main class="col-md-10 ms-sm-auto px-md-4 main-content">
+                    <!-- System Overview Section -->
+                    <div v-if="currentSection === 'dashboard'" class="pt-3">
+                        <div class="alert alert-info mb-4" role="alert">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h4 class="alert-heading">
+                                        <i class="fas fa-info-circle me-2"></i>系統介紹
+                                    </h4>
+                                    <p class="mb-3">
+                                        歡迎使用 <strong>VMS 養殖監控系統</strong>，一個專業的水產養殖監控和管理平台。
+                                    </p>
+                                    <h5 class="mb-2">🎯 系統核心功能：</h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="fas fa-check-circle text-success me-2"></i>
+                                            <strong>即時數據監控</strong> - 實時追蹤水溫、pH值、溶解氧等水質參數
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-check-circle text-success me-2"></i>
+                                            <strong>魚類健康管理</strong> - 記錄和監測養殖魚類的量、重量和健康狀況
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-check-circle text-success me-2"></i>
+                                            <strong>飼料管理系統</strong> - 追蹤飼料使用量和最佳化投飼計畫
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-check-circle text-success me-2"></i>
+                                            <strong>智能預警通知</strong> - 當水質異常或養殖風險時自動告警
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-check-circle text-success me-2"></i>
+                                            <strong>數據分析報告</strong> - 生成詳細的養殖數據分析和趨勢預測
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="bg-white p-3 rounded border-1">
+                                        <h5 class="mb-3">
+                                            <i class="fas fa-rocket me-2"></i>快速開始
+                                        </h5>
+                                        <p class="small text-muted">1️⃣ 查看儀表板了解概況</p>
+                                        <p class="small text-muted">2️⃣ 在魚類數據中管理養殖池塘</p>
+                                        <p class="small text-muted">3️⃣ 監控天氣和水質資訊</p>
+                                        <p class="small text-muted">4️⃣ 查看數據分析和警報</p>
+                                        <hr>
+                                        <p class="small"><strong>需要幫助？</strong><br>查看系統設定中的使用指南</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Section -->
+                    <div v-if="currentSection === 'dashboard'" class="pt-3">
+                        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                            <h1 class="h2">儀表板總覽</h1>
+                            <div class="btn-toolbar mb-2 mb-md-0">
+                                <div class="btn-group me-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="refreshData">
+                                        <i class="fas fa-sync-alt me-1"></i>刷新
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Metrics Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 mb-3">
+                                <div class="card metric-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h5 class="card-title">總魚數量</h5>
+                                                <h2 class="mb-0">{{ metrics.totalFish }}</h2>
+                                            </div>
+                                            <i class="fas fa-fish fa-2x opacity-75"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card metric-card success">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h5 class="card-title">健康指數</h5>
+                                                <h2 class="mb-0">{{ metrics.healthIndex }}%</h2>
+                                            </div>
+                                            <i class="fas fa-heartbeat fa-2x opacity-75"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card metric-card warning">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h5 class="card-title">水溫</h5>
+                                                <h2 class="mb-0">{{ metrics.waterTemp }}°C</h2>
+                                            </div>
+                                            <i class="fas fa-thermometer-half fa-2x opacity-75"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card metric-card danger">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h5 class="card-title">警報數量</h5>
+                                                <h2 class="mb-0">{{ metrics.alerts }}</h2>
+                                            </div>
+                                            <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charts Row -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">魚類生長趨勢</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="growthChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">水質參數</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="waterQualityChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">最近活動</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group list-group-flush">
+                                    <div v-for="activity in recentActivities" :key="activity.id" class="list-group-item px-0">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ activity.title }}</h6>
+                                            <small>{{ activity.time }}</small>
+                                        </div>
+                                        <p class="mb-1">{{ activity.description }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fish Data Section -->
+                    <div v-if="currentSection === 'fish-data'" class="pt-3">
+                        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                            <h1 class="h2">魚類數據管理</h1>
+                            <div class="btn-toolbar mb-2 mb-md-0">
+                                <div class="btn-group me-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" @click="loadFishData">
+                                        <i class="fas fa-sync-alt me-1"></i>刷新
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="loading" class="loading-overlay">
+                            <div class="loading-spinner"></div>
+                        </div>
+
+                        <div v-if="error" class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>{{ error }}
+                        </div>
+
+                        <div v-if="fishData.length > 0" class="data-section">
+                            <h3><i class="fas fa-fish me-2"></i>魚類養殖數據</h3>
+                            <div class="data-grid">
+                                <div v-for="fish in fishData" :key="fish.id" class="data-card">
+                                    <h4>{{ fish.fish_type }}</h4>
+                                    <p><strong>數量:</strong> <span class="value">{{ fish.quantity }}</span> 條</p>
+                                    <p><strong>平均體重:</strong> {{ fish.weight || 'N/A' }} kg</p>
+                                    <p><strong>健康狀況:</strong>
+                                        <span :class="getHealthClass(fish.health_status)">
+                                            {{ getHealthText(fish.health_status) }}
+                                        </span>
+                                    </p>
+                                    <p><strong>更新時間:</strong> {{ formatDate(fish.updated_at) }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else-if="!loading" class="empty-state">
+                            <i class="fas fa-fish"></i>
+                            <h4>尚未有魚類數據</h4>
+                            <p>系統尚未記錄任何魚類養殖數據。</p>
+                        </div>
+                    </div>
+
+                    <!-- Weather Data Section -->
+                    <div v-if="currentSection === 'weather'" class="pt-3">
+                        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                            <h1 class="h2">天氣資訊監控</h1>
+                            <div class="btn-toolbar mb-2 mb-md-0">
+                                <div class="btn-group me-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" @click="loadWeatherData">
+                                        <i class="fas fa-sync-alt me-1"></i>刷新
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="loading" class="loading-overlay">
+                            <div class="loading-spinner"></div>
+                        </div>
+
+                        <div v-if="error" class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>{{ error }}
+                        </div>
+
+                        <div v-if="weatherData.length > 0" class="data-section">
+                            <h3><i class="fas fa-cloud-sun me-2"></i>環境監控數據</h3>
+                            <div class="data-grid">
+                                <div v-for="weather in weatherData.slice(0, 12)" :key="weather.id" class="data-card">
+                                    <h4><i class="fas fa-map-marker-alt me-1"></i>{{ weather.location || '未命名位置' }}</h4>
+                                    <p><strong>溫度:</strong> <span class="value">{{ weather.temperature }}°C</span></p>
+                                    <p><strong>濕度:</strong> {{ weather.humidity }}%</p>
+                                    <p><strong>pH值:</strong> {{ weather.ph_level }}</p>
+                                    <p><strong>溶解氧:</strong> {{ weather.dissolved_oxygen }} mg/L</p>
+                                    <p><strong>記錄時間:</strong> {{ formatDate(weather.recorded_at) }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else-if="!loading" class="empty-state">
+                            <i class="fas fa-cloud-sun"></i>
+                            <h4>尚未有天氣數據</h4>
+                            <p>系統尚未記錄任何環境監控數據。</p>
+                        </div>
+                    </div>
+
+                    <!-- Feed Data Section -->
+                    <div v-if="currentSection === 'feed'" class="pt-3">
+                        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                            <h1 class="h2">飼料管理系統</h1>
+                            <div class="btn-toolbar mb-2 mb-md-0">
+                                <div class="btn-group me-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" @click="loadFeedData">
+                                        <i class="fas fa-sync-alt me-1"></i>刷新
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="loading" class="loading-overlay">
+                            <div class="loading-spinner"></div>
+                        </div>
+
+                        <div v-if="error" class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>{{ error }}
+                        </div>
+
+                        <div v-if="feedData.length > 0" class="data-section">
+                            <h3><i class="fas fa-seedling me-2"></i>飼料使用記錄</h3>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>飼料類型</th>
+                                            <th>數量</th>
+                                            <th>單位</th>
+                                            <th>餵食時間</th>
+                                            <th>用戶</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="feed in feedData" :key="feed.id">
+                                            <td>{{ feed.feed_type }}</td>
+                                            <td>{{ feed.quantity }}</td>
+                                            <td>{{ feed.unit }}</td>
+                                            <td>{{ formatDate(feed.feed_time) }}</td>
+                                            <td>{{ feed.user ? feed.user.username : '系統' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div v-else-if="!loading" class="empty-state">
+                            <i class="fas fa-seedling"></i>
+                            <h4>尚未有飼料記錄</h4>
+                            <p>系統尚未記錄任何飼料使用數據。</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application JavaScript -->
+    <script src="js/app.js"></script>
+</body>
+</html>
