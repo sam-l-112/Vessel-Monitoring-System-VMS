@@ -21,11 +21,57 @@ createApp({
             weatherData: [],
             feedData: [],
             recentActivities: [],
+            // AI Chat
+            aiChatOpen: false,
+            aiMessages: [],
+            aiInput: '',
+            aiLoading: false,
             // API base URL
             apiBase: 'http://192.168.50.75'
         }
     },
     methods: {
+        // AI Chat Methods
+        toggleAIChat() {
+            this.aiChatOpen = !this.aiChatOpen;
+        },
+        async sendAIMessage() {
+            if (!this.aiInput.trim() || this.aiLoading) return;
+            
+            const userMessage = this.aiInput;
+            this.aiMessages.push({ role: 'user', content: userMessage });
+            this.aiInput = '';
+            this.aiLoading = true;
+            
+            try {
+                const response = await axios.post(`${this.apiBase}/api/ai/query`, {
+                    query: userMessage
+                }, {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 90000
+                });
+                
+                if (response.data.success) {
+                    this.aiMessages.push({ 
+                        role: 'assistant', 
+                        content: response.data.data.response 
+                    });
+                } else {
+                    this.aiMessages.push({ 
+                        role: 'assistant', 
+                        content: '抱歉，發生錯誤：' + response.data.message 
+                    });
+                }
+            } catch (error) {
+                console.error('AI Query Error:', error);
+                this.aiMessages.push({ 
+                    role: 'assistant', 
+                    content: '抱歉，無法連線到 AI 服務。請確認 opencli 已正確安裝。' 
+                });
+            }
+            
+            this.aiLoading = false;
+        },
         showSection(section) {
             this.currentSection = section;
             this.sidebarVisible = false; // Close sidebar on mobile

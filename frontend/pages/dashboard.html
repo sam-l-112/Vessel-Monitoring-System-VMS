@@ -52,6 +52,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="#" @click="toggleAIChat">
+                                <i class="fas fa-robot me-1"></i>AI 助手
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="#" @click="logout">
                                 <i class="fas fa-sign-out-alt me-1"></i>登出
                             </a>
@@ -60,6 +65,34 @@
                 </div>
             </div>
         </nav>
+
+        <!-- AI Chat Sidebar -->
+        <div class="ai-chat-sidebar" :class="{ show: aiChatOpen }">
+            <div class="ai-chat-header">
+                <h5><i class="fas fa-robot me-2"></i>AI 助手</h5>
+                <button class="btn-close btn-close-white" @click="toggleAIChat"></button>
+            </div>
+            <div class="ai-chat-messages">
+                <div v-for="(msg, index) in aiMessages" :key="index" :class="['ai-message', msg.role]">
+                    <div class="ai-message-content" v-html="msg.content.replace(/\n/g, '<br>')"></div>
+                </div>
+                <div v-if="aiLoading" class="ai-message assistant">
+                    <div class="ai-message-content"><i class="fas fa-spinner fa-spin"></i> 思考中...</div>
+                </div>
+            </div>
+            <div class="ai-chat-input">
+                <input 
+                    type="text" 
+                    v-model="aiInput" 
+                    @keyup.enter="sendAIMessage"
+                    placeholder="問我任何問題..."
+                    :disabled="aiLoading"
+                >
+                <button @click="sendAIMessage" :disabled="aiLoading">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
 
         <div class="container-fluid">
             <div class="row">

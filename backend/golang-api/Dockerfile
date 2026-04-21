@@ -1,5 +1,14 @@
-# Build stage
-FROM golang:1.21-alpine AS builder
+# Development stage with Air for hot reloading
+FROM golang:1.26-alpine
+
+# Install Air, curl, Node.js and npm
+RUN apk add --no-cache curl go nodejs npm && \
+    curl -L https://github.com/cosmtrek/air/releases/download/v1.52.3/air_1.52.3_linux_amd64.tar.gz | tar -xz && \
+    mv air /usr/local/bin/ && \
+    chmod +x /usr/local/bin/air
+
+# Install opencli globally
+RUN npm install -g @jackwener/opencli
 
 # Set working directory
 WORKDIR /app
@@ -10,28 +19,12 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy Air configuration and source code
+COPY .air.toml ./
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+# Expose port
+EXPOSE 8080
 
-# Final stage
-FROM alpine:latest
-
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
-
-WORKDIR /root/
-
-# Copy the binary from builder stage
-COPY --from=builder /app/main .
-
-# Copy .env file if it exists
-COPY --from=builder /app/.env ./
-
-# Expose port 3000
-EXPOSE 3000
-
-# Command to run
-CMD ["./main"]
+# Command to run Air
+CMD ["air"]

@@ -11,6 +11,7 @@ func DataRoutes(router *mux.Router) {
 	fishController := &controllers.FishController{}
 	weatherController := &controllers.WeatherController{}
 	feedController := &controllers.FeedController{}
+	aiController := &controllers.AIController{}
 
 	// Fish data routes
 	router.HandleFunc("/api/fish/data", fishController.GetFishData).Methods("GET")
@@ -21,4 +22,7 @@ func DataRoutes(router *mux.Router) {
 
 	// Feed data routes
 	router.HandleFunc("/api/feed/data", feedController.GetFeedData).Methods("GET")
+
+	// AI routes (query Gemini via OpenCli)
+	router.HandleFunc("/api/ai/query", aiController.QueryAI).Methods("POST", "OPTIONS")
 }
