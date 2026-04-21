@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"vms-api/src/models"
 )
@@ -67,29 +69,35 @@ func (ac *AIController) QueryAI(w http.ResponseWriter, r *http.Request) {
 }
 
 func queryGeminiShell(query string) (string, error) {
-	// Run a shell script to query Gemini
-	script := fmt.Sprintf(`
-opencli operate open https://gemini.google.com/app > /dev/null 2>&1
-sleep 5
-opencli operate eval "$(cat <<'SCRIPT'
-(function(){ 
-  const ta = document.querySelector('rich-textarea')?.querySelector('div[contenteditable]'); 
-  if(ta){ ta.innerText = %q; ta.dispatchEvent(new Event('input', { bubbles: true })); return 'typed'; } 
-  return 'fail'; 
-})()
-SCRIPT
-)" > /dev/null 2>&1
-opencli operate keys "Enter" > /dev/null 2>&1
-sleep 12
-opencli operate eval "(function(){ const c = document.querySelector('chat-window-content'); return c ? c.textContent.slice(0,3000) : 'no content'; })()"
-opencli operate close > /dev/null 2>&1
-`, query)
+	// Set PATH to include nvm node
+	envPath := "/home/ouo/.nvm/versions/node/v24.14.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-	cmd := exec.Command("bash", "-c", script)
-	output, err := cmd.Output()
+	// Step 1: Open Gemini
+	cmd1 := exec.Command("opencli", "operate", "open", "https://gemini.google.com/app")
+	cmd1.Env = append(os.Environ(), "PATH="+envPath)
+	cmd1.Run()
+	time.Sleep(5 * time.Second)
+
+	// Step 2: Type query
+	typeScript := "opencli operate eval \"(function(){ const ta = document.querySelector('rich-textarea')?.querySelector('div[contenteditable]'); if(ta){ ta.innerText = '" + query + "'; ta.dispatchEvent(new Event('input', { bubbles: true })); return 'typed'; } return 'fail'; })()\""
+	cmd2 := exec.Command("sh", "-c", typeScript)
+	cmd2.Run()
+
+	// Step 3: Press Enter
+	cmd3 := exec.Command("opencli", "operate", "keys", "Enter")
+	cmd3.Run()
+	time.Sleep(12 * time.Second)
+
+	// Step 4: Extract response
+	cmd4 := exec.Command("opencli", "operate", "eval", "(function(){ const c = document.querySelector('chat-window-content'); return c ? c.textContent.slice(0,3000) : 'no content'; })")
+	output, err := cmd4.Output()
 	if err != nil {
-		return "", fmt.Errorf("shell script failed: %v", err)
+		return "", fmt.Errorf("failed to extract: %v", err)
 	}
+
+	// Step 5: Close
+	cmd5 := exec.Command("opencli", "operate", "close")
+	cmd5.Run()
 
 	// Clean up the response
 	lines := strings.Split(string(output), "\n")
@@ -102,19 +110,4 @@ opencli operate close > /dev/null 2>&1
 	}
 
 	return strings.Join(responseLines, "\n"), nil
-}
-
-// Deprecated: use queryGeminiShell instead
-func queryGemini(query string) (string, error) {
-	return queryGeminiShell(query)
-}
-
-func runOpenCliCommand(cmd string) error {
-	parts := strings.Fields(cmd)
-	if len(parts) < 2 {
-		return fmt.Errorf("invalid command")
-	}
-
-	command := exec.Command(parts[0], parts[1:]...)
-	return command.Run()
 }
