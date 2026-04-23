@@ -2,12 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
-	"time"
 
 	"vms-api/src/models"
 )
@@ -69,45 +66,14 @@ func (ac *AIController) QueryAI(w http.ResponseWriter, r *http.Request) {
 }
 
 func queryGeminiShell(query string) (string, error) {
-	// Set PATH to include nvm node
-	envPath := "/home/ouo/.nvm/versions/node/v24.14.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	// 使用 shell script 在後台查詢
+	cmd := exec.Command("/bin/bash", "/home/ouo/project_f/backend/golang-api/query_gemini.sh", query)
+	cmd.Env = append(os.Environ(), "PATH=/home/ouo/.nvm/versions/node/v24.14.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
 
-	// Step 1: Open Gemini
-	cmd1 := exec.Command("opencli", "operate", "open", "https://gemini.google.com/app")
-	cmd1.Env = append(os.Environ(), "PATH="+envPath)
-	cmd1.Run()
-	time.Sleep(5 * time.Second)
-
-	// Step 2: Type query
-	typeScript := "opencli operate eval \"(function(){ const ta = document.querySelector('rich-textarea')?.querySelector('div[contenteditable]'); if(ta){ ta.innerText = '" + query + "'; ta.dispatchEvent(new Event('input', { bubbles: true })); return 'typed'; } return 'fail'; })()\""
-	cmd2 := exec.Command("sh", "-c", typeScript)
-	cmd2.Run()
-
-	// Step 3: Press Enter
-	cmd3 := exec.Command("opencli", "operate", "keys", "Enter")
-	cmd3.Run()
-	time.Sleep(12 * time.Second)
-
-	// Step 4: Extract response
-	cmd4 := exec.Command("opencli", "operate", "eval", "(function(){ const c = document.querySelector('chat-window-content'); return c ? c.textContent.slice(0,3000) : 'no content'; })")
-	output, err := cmd4.Output()
+	output, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to extract: %v", err)
+		return "無法取得回應: " + err.Error(), nil
 	}
 
-	// Step 5: Close
-	cmd5 := exec.Command("opencli", "operate", "close")
-	cmd5.Run()
-
-	// Clean up the response
-	lines := strings.Split(string(output), "\n")
-	var responseLines []string
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed != "" && !strings.Contains(trimmed, "Update available") && !strings.HasPrefix(trimmed, "[") {
-			responseLines = append(responseLines, trimmed)
-		}
-	}
-
-	return strings.Join(responseLines, "\n"), nil
+	return string(output), nil
 }
