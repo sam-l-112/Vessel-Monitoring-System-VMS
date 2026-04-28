@@ -70,6 +70,9 @@ func queryGeminiShell(query string) (string, error) {
 	cmd := exec.Command("/bin/bash", "/home/ouo/project_f/backend/golang-api/query_gemini.sh", query)
 	cmd.Env = append(os.Environ(), "PATH=/home/ouo/.nvm/versions/node/v24.14.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
 
+	// 設定逾時 120 秒
+	cmd.Timeout = 120 * 1e9
+
 	output, err := cmd.Output()
 	if err != nil {
 		return "無法取得回應: " + err.Error(), nil
