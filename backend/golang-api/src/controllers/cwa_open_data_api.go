@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"vms-api/src/models"
@@ -18,16 +20,16 @@ type CWAWeatherResponse struct {
 	Records struct {
 		Locations []struct {
 			LocationName string `json:"locationName"`
-			Location   []struct {
+			Location     []struct {
 				LocationName   string `json:"locationName"`
-				StationID     string `json:"stationId"`
+				StationID      string `json:"stationId"`
 				WeatherElement []struct {
 					ElementName string `json:"elementName"`
-					Time       []struct {
-						StartTime  string `json:"startTime"`
-						EndTime    string `json:"endTime"`
+					Time        []struct {
+						StartTime string `json:"startTime"`
+						EndTime   string `json:"endTime"`
 						Parameter []struct {
-							ParameterName  string `json:"parameterName"`
+							ParameterName string `json:"parameterName"`
 							ParameterUnit string `json:"parameterUnit"`
 						} `json:"parameter"`
 					} `json:"time"`
@@ -40,7 +42,8 @@ type CWAWeatherResponse struct {
 func (c *CWAOpenDataController) GetCWAWeatherData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	apiKey := os.Getenv("CWA_API_KEY")
+	area := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("area")))
+	apiKey := getCWAAPIKey(area)
 	if apiKey == "" {
 		json.NewEncoder(w).Encode(models.APIResponse{
 			Success: false,
@@ -50,14 +53,10 @@ func (c *CWAOpenDataController) GetCWAWeatherData(w http.ResponseWriter, r *http
 	}
 
 	stationID := r.URL.Query().Get("station")
-	if stationID == "" {
-		stationID = os.Getenv("CWA_STATION_ID")
-	}
-	if stationID == "" {
-		stationID = "466900"
-	}
+	stationID = getCWAStationID(stationID, area)
 
-	url := fmt.Sprintf("https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0001-001?StationID=%s", stationID)
+	baseURL := getCWABaseURL()
+	url := fmt.Sprintf("%s/O-A0001-001?StationID=%s", baseURL, url.QueryEscape(stationID))
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -68,7 +67,7 @@ func (c *CWAOpenDataController) GetCWAWeatherData(w http.ResponseWriter, r *http
 		return
 	}
 
-	req.Header.Set("Authorization", apiKey)
+	req.Header.Set("Authorization", fmt.Sprintf("CWA %s", apiKey))
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
@@ -80,6 +79,14 @@ func (c *CWAOpenDataController) GetCWAWeatherData(w http.ResponseWriter, r *http
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		json.NewEncoder(w).Encode(models.APIResponse{
+			Success: false,
+			Message: fmt.Sprintf("CWA API returned status %d", resp.StatusCode),
+		})
+		return
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -111,7 +118,8 @@ func (c *CWAOpenDataController) GetCWAWeatherData(w http.ResponseWriter, r *http
 func (c *CWAOpenDataController) GetCWAForecast(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	apiKey := os.Getenv("CWA_API_KEY")
+	area := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("area")))
+	apiKey := getCWAAPIKey(area)
 	if apiKey == "" {
 		json.NewEncoder(w).Encode(models.APIResponse{
 			Success: false,
@@ -121,14 +129,10 @@ func (c *CWAOpenDataController) GetCWAForecast(w http.ResponseWriter, r *http.Re
 	}
 
 	locationName := r.URL.Query().Get("location")
-	if locationName == "" {
-		locationName = os.Getenv("CWA_LOCATION_NAME")
-	}
-	if locationName == "" {
-		locationName = "新北市"
-	}
+	locationName = getCWALocationName(locationName, area)
 
-	url := fmt.Sprintf("https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?locationName=%s", locationName)
+	baseURL := getCWABaseURL()
+	url := fmt.Sprintf("%s/F-C0032-001?locationName=%s", baseURL, url.QueryEscape(locationName))
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -139,7 +143,7 @@ func (c *CWAOpenDataController) GetCWAForecast(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	req.Header.Set("Authorization", apiKey)
+	req.Header.Set("Authorization", fmt.Sprintf("CWA %s", apiKey))
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
@@ -151,6 +155,14 @@ func (c *CWAOpenDataController) GetCWAForecast(w http.ResponseWriter, r *http.Re
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		json.NewEncoder(w).Encode(models.APIResponse{
+			Success: false,
+			Message: fmt.Sprintf("CWA API returned status %d", resp.StatusCode),
+		})
+		return
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -168,6 +180,62 @@ func (c *CWAOpenDataController) GetCWAForecast(w http.ResponseWriter, r *http.Re
 	})
 }
 
+func getCWABaseURL() string {
+	baseURL := os.Getenv("CWA_API_URL")
+	if baseURL == "" {
+		baseURL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore"
+	}
+	return strings.TrimRight(baseURL, "/")
+}
+
+func getCWAAPIKey(area string) string {
+	if area == "penghu" {
+		if key := os.Getenv("CWA_API_KEY_PENGHU"); key != "" {
+			return key
+		}
+	}
+
+	return os.Getenv("CWA_API_KEY")
+}
+
+func getCWAStationID(stationID, area string) string {
+	if stationID != "" {
+		return stationID
+	}
+
+	if area == "penghu" {
+		if id := os.Getenv("CWA_STATION_ID_PENGHU"); id != "" {
+			return id
+		}
+		return "467000"
+	}
+
+	if id := os.Getenv("CWA_STATION_ID"); id != "" {
+		return id
+	}
+
+	return "466900"
+}
+
+func getCWALocationName(locationName, area string) string {
+	if locationName != "" {
+		return locationName
+	}
+
+	if area == "penghu" {
+		if name := os.Getenv("CWA_LOCATION_NAME_PENGHU"); name != "" {
+			return name
+		}
+		return "澎湖地區"
+	}
+
+	if name := os.Getenv("CWA_LOCATION_NAME"); name != "" {
+		return name
+	}
+
+	return "新北市"
+}
+
 func parseCWAWeatherData(resp CWAWeatherResponse, stationID string) []models.WeatherData {
 	var weatherData []models.WeatherData
 
@@ -175,8 +243,8 @@ func parseCWAWeatherData(resp CWAWeatherResponse, stationID string) []models.Wea
 		return []models.WeatherData{
 			{
 				ID:              0,
-				Temperature:      getDemoTemperature(),
-				Humidity:         75.0,
+				Temperature:     getDemoTemperature(),
+				Humidity:        75.0,
 				PhLevel:         7.2,
 				DissolvedOxygen: 5.5,
 				Location:        "新北市 - " + stationID,
@@ -217,10 +285,10 @@ func parseCWAWeatherData(resp CWAWeatherResponse, stationID string) []models.Wea
 				ID:              0,
 				Temperature:     temp,
 				Humidity:        humidity,
-				PhLevel:        7.0,
+				PhLevel:         7.0,
 				DissolvedOxygen: windSpeed,
-				Location:       location.LocationName + " - " + loc.LocationName,
-				RecordedAt:     recordTime,
+				Location:        location.LocationName + " - " + loc.LocationName,
+				RecordedAt:      recordTime,
 			})
 		}
 	}
@@ -230,11 +298,11 @@ func parseCWAWeatherData(resp CWAWeatherResponse, stationID string) []models.Wea
 			{
 				ID:              0,
 				Temperature:     getDemoTemperature(),
-				Humidity:         75.0,
+				Humidity:        75.0,
 				PhLevel:         7.2,
 				DissolvedOxygen: 5.5,
 				Location:        "新北市",
-				RecordedAt:       time.Now(),
+				RecordedAt:      time.Now(),
 			},
 		}
 	}

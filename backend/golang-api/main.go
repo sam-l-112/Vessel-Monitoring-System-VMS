@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -42,9 +43,21 @@ func loggingMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: .env file not found, using system environment variables")
+	// Load environment variables from the executable directory first, then fallback to current working directory.
+	execPath, err := os.Executable()
+	if err == nil {
+		execDir := filepath.Dir(execPath)
+		dotenvPath := filepath.Join(execDir, ".env")
+		if err := godotenv.Load(dotenvPath); err != nil {
+			log.Printf("Warning: .env file not found at %s, trying current working directory", dotenvPath)
+			if err := godotenv.Load(); err != nil {
+				log.Println("Warning: .env file not found in current working directory, using system environment variables")
+			}
+		}
+	} else {
+		if err := godotenv.Load(); err != nil {
+			log.Println("Warning: .env file not found, using system environment variables")
+		}
 	}
 
 	// Initialize database connection

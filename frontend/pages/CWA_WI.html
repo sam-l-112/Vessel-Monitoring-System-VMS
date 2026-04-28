@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="中央氣象局天氣資訊 - VMS 養殖監控系統">
+    <meta name="keywords" content="中央氣象局,天氣資訊,養殖監控">
+    <meta name="author" content="VMS Team">
+
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/CWA_WI.css">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <title>中央氣象局天氣資訊 - VMS 養殖監控系統</title>
+</head>
+<body>
+    <div id="cwa-app" class="fade-in">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand d-flex align-items-center" href="dashboard.html">
+                    <i class="fas fa-fish me-2"></i>
+                    VMS - 養殖監控系統
+                </a>
+                <button class="navbar-toggler" type="button" @click="toggleSidebar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.html">
+                                <i class="fas fa-tachometer-alt me-1"></i>儀表板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#">
+                                <i class="fas fa-cloud-sun me-1"></i>天氣資訊
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="toggleAIChat">
+                                <i class="fas fa-robot me-1"></i>AI 助手
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="logout">
+                                <i class="fas fa-sign-out-alt me-1"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- AI Chat Sidebar -->
+        <div class="ai-chat-sidebar" :class="{ show: aiChatOpen }">
+            <div class="ai-chat-header">
+                <h5><i class="fas fa-robot me-2"></i>AI 助手</h5>
+                <button class="btn-close btn-close-white" @click="toggleAIChat"></button>
+            </div>
+            <div class="ai-chat-messages">
+                <div v-for="(msg, index) in aiMessages" :key="index" :class="['ai-message', msg.role]">
+                    <div class="ai-message-content" v-html="msg.content.replace(/\n/g, '<br>')"></div>
+                </div>
+                <div v-if="aiLoading" class="ai-message assistant">
+                    <div class="ai-message-content"><i class="fas fa-spinner fa-spin"></i> 思考中...</div>
+                </div>
+            </div>
+            <div class="ai-chat-input">
+                <input 
+                    type="text" 
+                    v-model="aiInput" 
+                    @keyup.enter="sendAIMessage"
+                    placeholder="問我任何問題..."
+                    :disabled="aiLoading"
+                >
+                <button @click="sendAIMessage" :disabled="aiLoading">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <nav class="col-md-2 d-none d-md-block sidebar p-3" :class="{ show: sidebarVisible }">
+                    <h5 class="text-white mb-4">
+                        <i class="fas fa-cloud-sun me-2"></i>天氣資訊
+                    </h5>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="switchArea('penghu')" :class="{ active: selectedArea === 'penghu' }">
+                                <i class="fas fa-map-marker-alt me-2"></i>澎湖地區
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="switchArea('newtaipei')" :class="{ active: selectedArea === 'newtaipei' }">
+                                <i class="fas fa-map-marker-alt me-2"></i>新北市
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <!-- Main Content -->
+                <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h1 class="h2">
+                                <i class="fas fa-cloud-sun me-2 text-primary"></i>
+                                中央氣象局天氣資訊
+                            </h1>
+                            <p class="text-muted mb-0">中央氣象局 API 即時資料</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" @click="loadData" :disabled="loading">
+                                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <i class="fas fa-sync-alt me-1"></i>重新整理
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Error Alert -->
+                    <div v-if="error" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>錯誤：</strong> {{ error }}
+                        <button type="button" class="btn-close" @click="error = null"></button>
+                    </div>
+
+                    <!-- Weather Data Section -->
+                    <div v-if="weatherData.length > 0" class="row mb-4">
+                        <div class="col-12">
+                            <div class="card shadow-sm">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-thermometer-half me-2"></i>
+                                        即時觀測站資料 - {{ selectedArea === 'penghu' ? '澎湖地區' : '新北市' }}
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                                        <div class="col" v-for="item in weatherData" :key="item.id">
+                                            <div class="card h-100 border-0 shadow-sm">
+                                                <div class="card-body">
+                                                    <h6 class="card-title text-primary">
+                                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                                        {{ item.location }}
+                                                    </h6>
+                                                    <div class="row g-2">
+                                                        <div class="col-6">
+                                                            <div class="p-2 bg-light rounded text-center">
+                                                                <i class="fas fa-thermometer-half fa-lg text-danger mb-1"></i>
+                                                                <div class="fw-bold">{{ item.temperature }}°C</div>
+                                                                <small class="text-muted">溫度</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <div class="p-2 bg-light rounded text-center">
+                                                                <i class="fas fa-tint fa-lg text-info mb-1"></i>
+                                                                <div class="fw-bold">{{ item.humidity }}%</div>
+                                                                <small class="text-muted">濕度</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <div class="p-2 bg-light rounded text-center">
+                                                                <i class="fas fa-flask fa-lg text-warning mb-1"></i>
+                                                                <div class="fw-bold">{{ item.ph_level }}</div>
+                                                                <small class="text-muted">pH 值</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <div class="p-2 bg-light rounded text-center">
+                                                                <i class="fas fa-wind fa-lg text-success mb-1"></i>
+                                                                <div class="fw-bold">{{ item.dissolved_oxygen }}</div>
+                                                                <small class="text-muted">溶解氧</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <hr>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        {{ formatDate(item.recorded_at) }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No Data Alert -->
+                    <div v-else-if="!loading" class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        目前尚未取得中央氣象局觀測資料，請按「重新整理」或稍後再試。
+                    </div>
+
+                    <!-- Forecast Data Section -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card shadow-sm">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        天氣預報資料 - {{ selectedArea === 'penghu' ? '澎湖地區' : '新北市' }}
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div v-if="forecastRaw" class="bg-light p-3 rounded">
+                                        <pre class="small mb-0" style="max-height: 400px; overflow: auto;">{{ forecastRaw }}</pre>
+                                    </div>
+                                    <div v-else class="text-center text-muted py-4">
+                                        <i class="fas fa-cloud fa-2x mb-2"></i>
+                                        <p>尚未載入預報資料</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application JavaScript -->
+    <script src="/js/CWA_WI.js"></script>
+</body>
+</html>

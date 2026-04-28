@@ -69,7 +69,7 @@ func (ac *AIController) QueryAI(w http.ResponseWriter, r *http.Request) {
 
 func queryGeminiShell(query string) (string, error) {
 	cmd := exec.Command("/bin/bash", "/home/ouo/project_f/backend/golang-api/query_gemini.sh", query)
-	cmd.Env = append(os.Environ(), "PATH=/home/ouo/.nvm/versions/node/v24.14.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+	cmd.Env = append(os.Environ(), "PATH=/home/ouo/.nvm/versions/node/v24.15.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
 
 	done := make(chan string, 1)
 	errChan := make(chan error, 1)
