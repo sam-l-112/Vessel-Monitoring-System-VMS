@@ -16,6 +16,8 @@ createApp({
             aiLoading: false,
             loading: false,
             error: null,
+            fishData: [],
+            weatherData: [],
             feedData: [],
             metrics: {
                 totalFish: 0,
@@ -29,7 +31,8 @@ createApp({
                 activeAlerts: 0,
                 todayFeed: 0,
                 waterQuality: {}
-            }
+            },
+            apiBase: 'http://192.168.50.75:8080'
         };
     },
     methods: {
@@ -39,10 +42,17 @@ createApp({
         showSection(section) {
             this.currentSection = section;
             this.sidebarVisible = false;
+
+            if (section === 'weather') {
+                this.loadWeatherData();
+            } else if (section === 'fish-data') {
+                this.loadFishData();
+            } else if (section === 'feed') {
+                this.loadFeedData();
+            }
         },
         toggleAIChat() {
             this.aiChatOpen = !this.aiChatOpen;
-            console.log('AI Chat toggled:', this.aiChatOpen);
         },
         async sendAIMessage() {
             if (!this.aiInput.trim() || this.aiLoading) return;
@@ -56,8 +66,7 @@ createApp({
             this.aiLoading = true;
 
             try {
-                const apiBase = 'http://192.168.50.75:8080';
-                const response = await axios.post(`${apiBase}/api/ai/query`, {
+                const response = await axios.post(`${this.apiBase}/api/ai/query`, {
                     query: userMessage
                 }, {
                     headers: { 'Content-Type': 'application/json' },
@@ -90,66 +99,204 @@ createApp({
                 window.location.href = 'login.html';
             }
         },
-        async loadFeedData() {
+        async makeAPIRequest(endpoint, options = {}) {
+            try {
+                const response = await axios.get(`${this.apiBase}${endpoint}`, {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 15000,
+                    ...options
+                });
+                return response.data;
+            } catch (error) {
+                console.error(`API Error (${endpoint}):`, error);
+                throw error;
+            }
+        },
+        async loadDashboardData() {
             this.loading = true;
             this.error = null;
-            setTimeout(() => {
-                this.feedData = [
-                    {
-                        id: 1,
-                        feed_type: '顆粒飼料',
-                        quantity: 50,
-                        unit: 'kg',
-                        feed_time: new Date().toISOString(),
-                        user: { username: '管理員' }
-                    },
-                    {
-                        id: 2,
-                        feed_type: '營養添加劑',
-                        quantity: 10,
-                        unit: 'kg',
-                        feed_time: new Date(Date.now() - 3600000).toISOString(),
-                        user: { username: '技術員' }
-                    }
-                ];
-                this.loading = false;
-            }, 500);
-        },
-        formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleString('zh-TW', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        },
-        loadDashboardData() {
-            this.dashboardData = {
-                totalPonds: 5,
-                activeAlerts: 2,
-                todayFeed: 150,
-                waterQuality: {
-                    temperature: 25.5,
-                    ph: 7.2,
-                    oxygen: 8.5
+
+            try {
+                const fishResponse = await this.makeAPIRequest('/api/fish/data');
+                if (fishResponse.success && fishResponse.data) {
+                    this.fishData = fishResponse.data;
+                    this.metrics.totalFish = fishResponse.data.reduce((sum, fish) => sum + fish.quantity, 0);
                 }
-            };
-            this.metrics = {
-                totalFish: 1250,
-                healthIndex: 92,
-                waterTemp: 25.5,
-                alerts: 2
-            };
+
+                await this.loadWeatherData();
+
+                this.metrics.healthIndex = Math.floor(Math.random() * 20) + 80;
+                this.metrics.alerts = 0;
+
+                this.generateRecentActivities();
+
+                this.$nextTick(() => {
+                    this.initCharts();
+                });
+            } catch (error) {
+                console.error('Dashboard data load error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        async loadFishData() {
+            this.loading = true;
+            try {
+                const response = await this.makeAPIRequest('/api/fish/data');
+                if (response.success) {
+                    this.fishData = response.data || [];
+                }
+            } catch (error) {
+                this.error = '無法載入魚類數據';
+            } finally {
+                this.loading = false;
+            }
+        },
+        async loadWeatherData() {
+            this.loading = true;
+            try {
+                let response = await this.makeAPIRequest('/api/weather/data/cwa');
+                if (response.success && response.data && response.data.length > 0) {
+                    this.weatherData = response.data;
+                    if (response.data[0].temperature) {
+                        this.metrics.waterTemp = response.data[0].temperature;
+                    }
+                } else {
+                    response = await this.makeAPIRequest('/api/weather/data');
+                    if (response.success) {
+                        this.weatherData = response.data || [];
+                        if (response.data && response.data[0]) {
+                            this.metrics.waterTemp = response.data[0].temperature || 0;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Weather data load error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        async loadFeedData() {
+            this.loading = true;
+            try {
+                const response = await this.makeAPIRequest('/api/feed/data');
+                if (response.success) {
+                    this.feedData = response.data || [];
+                }
+            } catch (error) {
+                this.error = '無法載入飼料數據';
+            } finally {
+                this.loading = false;
+            }
+        },
+        generateRecentActivities() {
+            this.recentActivities = [];
+
+            if (this.fishData.length > 0) {
+                this.recentActivities.push({
+                    id: 1,
+                    title: '魚類數據更新',
+                    description: `系統記錄了 ${this.fishData.length} 種魚類數據`,
+                    time: '剛剛'
+                });
+            }
+
+            if (this.weatherData.length > 0) {
+                const latest = this.weatherData[0];
+                this.recentActivities.push({
+                    id: 2,
+                    title: '天氣監控更新',
+                    description: `溫度: ${latest.temperature || 'N/A'}°C, 濕度: ${latest.humidity || 'N/A'}%`,
+                    time: '5分鐘前'
+                });
+            }
+
+            if (this.recentActivities.length === 0) {
+                this.recentActivities = [
+                    { id: 1, title: '系統初始化', description: 'VMS系統已成功啟動', time: '剛剛' },
+                    { id: 2, title: 'API 連接', description: '嘗試連接中央氣象署 API', time: '5分鐘前' }
+                ];
+            }
+        },
+        initCharts() {
+            const growthCtx = document.getElementById('growthChart');
+            if (growthCtx && this.fishData.length > 0) {
+                if (window.growthChart) {
+                    window.growthChart.destroy();
+                }
+                const growthData = this.fishData.slice(0, 6).map(fish => fish.weight || 1.0);
+                window.growthChart = new Chart(growthCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                        datasets: [{
+                            label: '平均體重 (kg)',
+                            data: growthData,
+                            borderColor: 'rgb(37, 99, 235)',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            const waterCtx = document.getElementById('waterQualityChart');
+            if (waterCtx && this.weatherData.length > 0) {
+                if (window.waterQualityChart) {
+                    window.waterQualityChart.destroy();
+                }
+                const excellent = this.weatherData.filter(w => w.ph_level >= 7.0 && w.ph_level <= 8.0).length;
+                const good = this.weatherData.filter(w => w.ph_level >= 6.5 && w.ph_level < 7.0).length;
+                const fair = this.weatherData.filter(w => w.ph_level >= 6.0 && w.ph_level < 6.5).length;
+                const poor = this.weatherData.filter(w => w.ph_level < 6.0).length;
+                const total = this.weatherData.length || 1;
+
+                window.waterQualityChart = new Chart(waterCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['優良', '良好', '一般', '需改善'],
+                        datasets: [{
+                            data: [
+                                Math.round((excellent / total) * 100),
+                                Math.round((good / total) * 100),
+                                Math.round((fair / total) * 100),
+                                Math.round((poor / total) * 100)
+                            ],
+                            backgroundColor: ['rgb(16, 185, 129)', 'rgb(59, 130, 246)', 'rgb(245, 158, 11)', 'rgb(239, 68, 68)']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
         },
         refreshData() {
             this.loadDashboardData();
-            this.loadFeedData();
+        },
+        getHealthClass(status) {
+            const classes = { 'excellent': 'badge-success', 'good': 'badge-success', 'fair': 'badge-warning', 'poor': 'badge-danger' };
+            return `badge ${classes[status] || 'badge-secondary'}`;
+        },
+        getHealthText(status) {
+            const texts = { 'excellent': '優良', 'good': '良好', 'fair': '一般', 'poor': '需改善' };
+            return texts[status] || status;
+        },
+        formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
         }
     },
     mounted() {
         this.loadDashboardData();
-        this.loadFeedData();
     }
 }).mount('#app');

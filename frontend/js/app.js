@@ -162,9 +162,14 @@ createApp({
 
         async loadWeatherData() {
             try {
-                const response = await this.makeAPIRequest('/api/weather/data');
-                if (response.success) {
-                    this.weatherData = response.data || [];
+                let response = await this.makeAPIRequest('/api/weather/data/cwa');
+                if (response.success && response.data && response.data.length > 0) {
+                    this.weatherData = response.data;
+                } else {
+                    response = await this.makeAPIRequest('/api/weather/data');
+                    if (response.success) {
+                        this.weatherData = response.data || [];
+                    }
                 }
             } catch (error) {
                 this.error = '無法載入天氣數據';

@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 
 	"vms-api/src/models"
 )
@@ -66,17 +68,28 @@ func (ac *AIController) QueryAI(w http.ResponseWriter, r *http.Request) {
 }
 
 func queryGeminiShell(query string) (string, error) {
-	// 使用 shell script 在後台查詢
 	cmd := exec.Command("/bin/bash", "/home/ouo/project_f/backend/golang-api/query_gemini.sh", query)
 	cmd.Env = append(os.Environ(), "PATH=/home/ouo/.nvm/versions/node/v24.14.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
 
-	// 設定逾時 120 秒
-	cmd.Timeout = 120 * 1e9
+	done := make(chan string, 1)
+	errChan := make(chan error, 1)
 
-	output, err := cmd.Output()
-	if err != nil {
+	go func() {
+		output, err := cmd.Output()
+		if err != nil {
+			errChan <- err
+			return
+		}
+		done <- string(output)
+	}()
+
+	select {
+	case result := <-done:
+		return result, nil
+	case err := <-errChan:
 		return "無法取得回應: " + err.Error(), nil
+	case <-time.After(120 * time.Second):
+		cmd.Process.Kill()
+		return "", fmt.Errorf("query timeout after 120 seconds")
 	}
-
-	return string(output), nil
 }

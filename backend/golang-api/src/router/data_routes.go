@@ -6,23 +6,21 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// DataRoutes sets up data management routes
 func DataRoutes(router *mux.Router) {
 	fishController := &controllers.FishController{}
 	weatherController := &controllers.WeatherController{}
 	feedController := &controllers.FeedController{}
 	aiController := &controllers.AIController{}
+	cwaController := &controllers.CWAOpenDataController{}
 
-	// Fish data routes
 	router.HandleFunc("/api/fish/data", fishController.GetFishData).Methods("GET")
 	router.HandleFunc("/api/fish/data", fishController.AddFishData).Methods("POST", "OPTIONS")
 
-	// Weather data routes
 	router.HandleFunc("/api/weather/data", weatherController.GetWeatherData).Methods("GET")
+	router.HandleFunc("/api/weather/data/cwa", cwaController.GetCWAWeatherData).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/weather/forecast", cwaController.GetCWAForecast).Methods("GET", "OPTIONS")
 
-	// Feed data routes
 	router.HandleFunc("/api/feed/data", feedController.GetFeedData).Methods("GET")
 
-	// AI routes (query Gemini via OpenCli)
 	router.HandleFunc("/api/ai/query", aiController.QueryAI).Methods("POST", "OPTIONS")
 }
