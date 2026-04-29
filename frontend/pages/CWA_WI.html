@@ -28,10 +28,6 @@
                     <i class="fas fa-fish me-2"></i>
                     VMS - 養殖監控系統
                 </a>
-                <span class="navbar-text text-white me-2 d-none d-lg-inline">選擇地區：</span>
-                <select v-model="selectedArea" @change="changeArea" class="form-select form-select-sm me-3" style="width: 100px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);">
-                    <option v-for="area in areas" :key="area.value" :value="area.value" style="color: black;">{{ area.label }}</option>
-                </select>
                 <button class="navbar-toggler" type="button" @click="toggleSidebar">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -91,34 +87,25 @@
         </div>
 
         <div class="container-fluid">
-            <div class="row">
-                <!-- Sidebar -->
-                <nav class="col-md-2 d-none d-md-block sidebar p-3" :class="{ show: sidebarVisible }">
-                    <h5 class="text-white mb-4">
-                        <i class="fas fa-cloud-sun me-2"></i>選擇地區
-                    </h5>
-                    <div class="d-flex flex-column gap-2">
-                        <button class="btn" :class="selectedArea === 'penghu' ? 'btn-warning' : 'btn-outline-light'" @click="switchArea('penghu')">
-                            <i class="fas fa-map-marker-alt me-2"></i>澎湖縣
-                        </button>
-                        <button class="btn" :class="selectedArea === 'newtaipei' ? 'btn-warning' : 'btn-outline-light'" @click="switchArea('newtaipei')">
-                            <i class="fas fa-map-marker-alt me-2"></i>新北市
-                        </button>
-                    </div>
-                </nav>
-
+            <div class="row justify-content-center">
                 <!-- Main Content -->
-                <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+                <main class="col-12 px-4 py-4" :style="{ backgroundColor: backgroundColor }" 
+     style="transition: background-color 0.3s ease; min-height: 100vh;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h1 class="h2">
-                                <i class="fas fa-cloud-sun me-2 text-primary"></i>
-                                中央氣象局天氣資訊
-                            </h1>
-                            <p class="text-muted mb-0">中央氣象局 API 即時資料</p>
+                        <div class="d-flex align-items-center gap-3">
+                            <select v-model="selectedArea" @change="changeArea" class="form-select form-select-lg" style="width: 140px;">
+                                <option v-for="area in areas" :key="area.value" :value="area.value">{{ area.label }}</option>
+                            </select>
+                            <div>
+                                <h1 class="h2">
+                                    <i class="fas fa-cloud-sun me-2" :style="{ color: accentColor }"></i>
+                                    中央氣象局天氣資訊
+                                </h1>
+                                <p class="text-muted mb-0">中央氣象局 API 即時資料</p>
+                            </div>
                         </div>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-primary" @click="loadData" :disabled="loading">
+                            <button class="btn btn-light" @click="loadData" :disabled="loading">
                                 <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 <i class="fas fa-sync-alt me-1"></i>重新整理
                             </button>

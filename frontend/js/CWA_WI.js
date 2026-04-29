@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ],
                 weatherData: [],
                 forecastData: [],
+                currentWeather: '', // 天氣現象
                 loading: false,
                 error: null,
                 sidebarVisible: false,
@@ -19,6 +20,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 aiInput: '',
                 aiLoading: false
             };
+        },
+        computed: {
+            backgroundColor() {
+                const weather = this.currentWeather?.toLowerCase() || '';
+                const temp = parseInt(this.weatherData[0]?.temperature) || 25;
+                
+                console.log('Weather:', weather, 'Temp:', temp);
+                
+                if (weather.includes('雨') || weather.includes('雷')) {
+                    return '#64748b';
+                } else if (weather.includes('晴') || weather.includes('陽')) {
+                    return temp > 30 ? '#fde047' : '#fef9c3';
+                } else if (weather.includes('陰')) {
+                    return '#9ca3af';
+                } else if (weather.includes('雲')) {
+                    return '#f3f4f6';
+                } else if (temp > 32) {
+                    return '#fde047';
+                } else if (temp < 15) {
+                    return '#bfdbfe';
+                }
+                return '#ffffff';
+            },
+            accentColor() {
+                const temp = parseInt(this.weatherData[0]?.temperature) || 25;
+                if (temp > 30) return '#dc2626';
+                if (temp < 15) return '#2563eb';
+                return '#059669';
+            }
         },
         methods: {
             changeArea() {
@@ -41,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.error = null;
                 this.weatherData = [];
                 this.forecastData = [];
+                this.currentWeather = '';
 
                 const areaParam = this.selectedArea;
 
@@ -62,6 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         let parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
                         let result = typeof parsed.result === 'string' ? JSON.parse(parsed.result) : parsed;
                         this.forecastData = this.parseForecastData(result.records);
+                        
+                        // 設定當前天氣現象用於背景顏色
+                        if (this.forecastData.length > 0) {
+                            this.currentWeather = this.forecastData[0].weather || '';
+                        }
                     }
                 } catch (err) {
                     console.error('Forecast error:', err);
@@ -97,9 +133,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         else if (elementName === '最低溫度') {
                             tempData[startTime].minTemp = time.ElementValue ? time.ElementValue[0].MinTemperature : '-';
                         }
-                        // 天氣現象 - 使用 Weather 欄位
+                        // 天氣現象 - 使用 ElementValue[0].Weather 欄位
                         else if (elementName === '天氣現象') {
-                            let weather = time.Weather || time.Parameter?.ParameterName || '-';
+                            let ev = time.ElementValue ? time.ElementValue[0] : {};
+                            let weather = ev.Weather || ev.ParameterName || time.Parameter?.ParameterName || '-';
                             tempData[startTime].weather = weather;
                         }
                         // 降雨機率
