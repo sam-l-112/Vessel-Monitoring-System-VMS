@@ -134,7 +134,13 @@ func (c *CWAOpenDataController) GetCWAForecast(w http.ResponseWriter, r *http.Re
 	forecastType := r.URL.Query().Get("type")
 	baseURL := getCWABaseURL()
 	var apiURL string
-	if forecastType == "week" {
+	
+	// 使用不同的 dataset ID
+	if area == "newtaipei" {
+		// 新北市一周預報
+		apiURL = fmt.Sprintf("%s/F-D0047-071?locationName=%s", baseURL, url.QueryEscape(locationName))
+	} else if forecastType == "week" {
+		// 澎湖一周預報
 		apiURL = fmt.Sprintf("%s/F-D0047-047?locationName=%s", baseURL, url.QueryEscape(locationName))
 	} else {
 		apiURL = fmt.Sprintf("%s/F-C0032-001?locationName=%s", baseURL, url.QueryEscape(locationName))

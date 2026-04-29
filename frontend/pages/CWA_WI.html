@@ -28,16 +28,15 @@
                     <i class="fas fa-fish me-2"></i>
                     VMS - 養殖監控系統
                 </a>
+                <span class="navbar-text text-white me-2 d-none d-lg-inline">選擇地區：</span>
+                <select v-model="selectedArea" @change="changeArea" class="form-select form-select-sm me-3" style="width: 100px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                    <option v-for="area in areas" :key="area.value" :value="area.value" style="color: black;">{{ area.label }}</option>
+                </select>
                 <button class="navbar-toggler" type="button" @click="toggleSidebar">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item d-flex align-items-center me-3">
-                            <select v-model="selectedArea" @change="changeArea" class="form-select form-select-sm" style="width: auto; min-width: 120px;">
-                                <option v-for="area in areas" :key="area.value" :value="area.value">{{ area.label }}</option>
-                            </select>
-                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="dashboard.html">
                                 <i class="fas fa-tachometer-alt me-1"></i>儀表板
@@ -100,7 +99,7 @@
                     </h5>
                     <div class="d-flex flex-column gap-2">
                         <button class="btn" :class="selectedArea === 'penghu' ? 'btn-warning' : 'btn-outline-light'" @click="switchArea('penghu')">
-                            <i class="fas fa-map-marker-alt me-2"></i>澎湖地區
+                            <i class="fas fa-map-marker-alt me-2"></i>澎湖縣
                         </button>
                         <button class="btn" :class="selectedArea === 'newtaipei' ? 'btn-warning' : 'btn-outline-light'" @click="switchArea('newtaipei')">
                             <i class="fas fa-map-marker-alt me-2"></i>新北市
@@ -140,7 +139,7 @@
                                 <div class="card-header bg-primary text-white">
                                     <h5 class="card-title mb-0">
                                         <i class="fas fa-thermometer-half me-2"></i>
-                                        即時觀測站資料 - {{ selectedArea === 'penghu' ? '澎湖地區' : '新北市' }}
+                                        即時觀測站資料 - {{ selectedArea === 'penghu' ? '澎湖縣' : '新北市' }}
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -209,7 +208,7 @@
                                 <div class="card-header bg-success text-white">
                                     <h5 class="card-title mb-0">
                                         <i class="fas fa-calendar-alt me-2"></i>
-                                        一週天氣預報 - {{ selectedArea === 'penghu' ? '澎湖地區' : '新北市' }}
+                                        一週天氣預報 - {{ selectedArea === 'penghu' ? '澎湖縣' : '新北市' }}
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -236,7 +235,7 @@
                                                     <td>{{ forecast.minTemp }}°C</td>
                                                     <td>{{ forecast.rain }}%</td>
                                                     <td>{{ forecast.wind }}</td>
-                                                    <td>{{ forecast.humidity }}%</td>
+                                                    <td>{{ forecast.humidity }}</td>
                                                 </tr>
                                             </tbody>
                                         </table>

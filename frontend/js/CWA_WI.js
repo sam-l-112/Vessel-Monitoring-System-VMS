@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.weatherData = [];
                 this.forecastData = [];
 
-                const areaParam = this.selectedArea === 'penghu' ? 'penghu' : '';
+                const areaParam = this.selectedArea;
 
                 try {
                     const weatherResponse = await axios.get(`/api/weather/data/cwa?area=${areaParam}`);
@@ -97,17 +97,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         else if (elementName === '最低溫度') {
                             tempData[startTime].minTemp = time.ElementValue ? time.ElementValue[0].MinTemperature : '-';
                         }
-                        // 天氣現象
+                        // 天氣現象 - 使用 Weather 欄位
                         else if (elementName === '天氣現象') {
-                            tempData[startTime].weather = time.Parameter?.ParameterName || '-';
+                            let weather = time.Weather || time.Parameter?.ParameterName || '-';
+                            tempData[startTime].weather = weather;
                         }
-                        // 12小時降雨機率
+                        // 降雨機率
                         else if (elementName === '12小時降雨機率') {
-                            tempData[startTime].rain = time.ElementValue ? time.ElementValue[0].ProbabilityOfPrecipitation : '-';
+                            let val = time.ElementValue ? time.ElementValue[0].ProbabilityOfPrecipitation : null;
+                            tempData[startTime].rain = (val !== null && val !== undefined) ? val : '0';
                         }
                         // 風速
                         else if (elementName === '風速') {
-                            tempData[startTime].wind = time.ElementValue ? time.ElementValue[0].WindSpeed : '-';
+                            let ws = time.ElementValue ? time.ElementValue[0].WindSpeed : null;
+                            if (ws && ws.startsWith('>=')) {
+                                tempData[startTime].wind = ws.replace('>= ', '') + '+';
+                            } else {
+                                tempData[startTime].wind = ws || '-';
+                            }
                         }
                         // 濕度
                         else if (elementName === '平均相對濕度') {
@@ -123,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         maxTemp: d.maxTemp || '-',
                         minTemp: d.minTemp || '-',
                         weather: d.weather || '-',
-                        rain: d.rain || '-',
+                        rain: d.rain || '0',
                         wind: d.wind || '-',
                         humidity: d.humidity || '-'
                     });
