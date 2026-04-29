@@ -6,6 +6,11 @@ createApp({
             sidebarVisible: false,
             currentSection: 'dashboard',
             aiChatOpen: false,
+            selectedArea: 'newtaipei',
+            areas: [
+                { value: 'newtaipei', label: '新北市' },
+                { value: 'penghu', label: '澎湖縣' }
+            ],
             aiMessages: [
                 {
                     role: 'assistant',
@@ -18,6 +23,7 @@ createApp({
             error: null,
             fishData: [],
             weatherData: [],
+            forecastData: [],
             feedData: [],
             metrics: {
                 totalFish: 0,
