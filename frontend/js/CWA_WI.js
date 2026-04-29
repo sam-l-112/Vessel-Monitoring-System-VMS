@@ -3,8 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
         data() {
             return {
                 selectedArea: 'penghu',
+                areas: [
+                    { value: 'newtaipei', label: '新北市' },
+                    { value: 'penghu', label: '澎湖縣' }
+                ],
                 weatherData: [],
-                forecastRaw: '',
+                forecastData: [],
                 loading: false,
                 error: null,
                 sidebarVisible: false,
@@ -17,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         },
         methods: {
+            changeArea() {
+                this.loadData();
+            },
             switchArea(area) {
                 if (this.selectedArea !== area) {
                     this.selectedArea = area;
@@ -33,9 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.loading = true;
                 this.error = null;
                 this.weatherData = [];
-                this.forecastRaw = '';
+                this.forecastData = [];
 
-                const areaParam = this.selectedArea === 'penghu' ? 'penghu' : 'newtaipei';
+                const areaParam = this.selectedArea === 'penghu' ? 'penghu' : '';
 
                 try {
                     const weatherResponse = await axios.get(`/api/weather/data/cwa?area=${areaParam}`);
@@ -49,21 +56,88 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 try {
-                    const forecastResponse = await axios.get(`/api/weather/forecast?area=${areaParam}`);
+                    const forecastResponse = await axios.get(`/api/weather/forecast?area=${areaParam}&type=week`);
                     if (forecastResponse.data && forecastResponse.data.success) {
-                        this.forecastRaw = JSON.stringify(forecastResponse.data.data, null, 2);
-                    } else {
-                        if (!this.error) {
-                            this.error = forecastResponse.data?.message || '無法取得預報資料。';
-                        }
+                        let rawData = forecastResponse.data.data;
+                        let parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                        let result = typeof parsed.result === 'string' ? JSON.parse(parsed.result) : parsed;
+                        this.forecastData = this.parseForecastData(result.records);
                     }
                 } catch (err) {
-                    if (!this.error) {
-                        this.error = err.response?.data?.message || err.message || '取得天氣預報失敗。';
-                    }
+                    console.error('Forecast error:', err);
                 }
 
                 this.loading = false;
+            },
+            parseForecastData(records) {
+                if (!records || !records.Locations || !records.Locations[0]) return [];
+                let loc = records.Locations[0];
+                let location = loc.Location[0];
+                if (!location) return [];
+                
+                let forecast = [];
+                let tempData = {};
+                
+                for (let element of location.WeatherElement) {
+                    let elementName = element.ElementName;
+                    for (let time of element.Time) {
+                        let startTime = time.StartTime;
+                        if (!tempData[startTime]) {
+                            tempData[startTime] = { time: startTime };
+                        }
+                        // 平均溫度
+                        if (elementName === '平均溫度') {
+                            tempData[startTime].temp = time.ElementValue ? time.ElementValue[0].Temperature : '-';
+                        }
+                        // 最高溫度
+                        else if (elementName === '最高溫度') {
+                            tempData[startTime].maxTemp = time.ElementValue ? time.ElementValue[0].MaxTemperature : '-';
+                        }
+                        // 最低溫度
+                        else if (elementName === '最低溫度') {
+                            tempData[startTime].minTemp = time.ElementValue ? time.ElementValue[0].MinTemperature : '-';
+                        }
+                        // 天氣現象
+                        else if (elementName === '天氣現象') {
+                            tempData[startTime].weather = time.Parameter?.ParameterName || '-';
+                        }
+                        // 12小時降雨機率
+                        else if (elementName === '12小時降雨機率') {
+                            tempData[startTime].rain = time.ElementValue ? time.ElementValue[0].ProbabilityOfPrecipitation : '-';
+                        }
+                        // 風速
+                        else if (elementName === '風速') {
+                            tempData[startTime].wind = time.ElementValue ? time.ElementValue[0].WindSpeed : '-';
+                        }
+                        // 濕度
+                        else if (elementName === '平均相對濕度') {
+                            tempData[startTime].humidity = time.ElementValue ? time.ElementValue[0].RelativeHumidity : '-';
+                        }
+                    }
+                }
+                
+                Object.values(tempData).forEach(d => {
+                    forecast.push({
+                        time: this.formatDateTime(d.time),
+                        temp: d.temp || '-',
+                        maxTemp: d.maxTemp || '-',
+                        minTemp: d.minTemp || '-',
+                        weather: d.weather || '-',
+                        rain: d.rain || '-',
+                        wind: d.wind || '-',
+                        humidity: d.humidity || '-'
+                    });
+                });
+                
+                return forecast;
+            },
+            formatDateTime(dateStr) {
+                if (!dateStr) return '-';
+                const date = new Date(dateStr);
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const hour = date.getHours();
+                return `${month}/${day} ${hour}:00`;
             },
             async sendAIMessage() {
                 if (!this.aiInput.trim() || this.aiLoading) return;
@@ -74,23 +148,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.aiLoading = true;
 
                 try {
-                    // 模擬 AI 回應 - 實際應用中應該調用真實的 AI API
-                    setTimeout(() => {
-                        let response = '';
-                        if (userMessage.includes('天氣') || userMessage.includes('氣象')) {
-                            response = '關於天氣資訊，您可以查看即時觀測站資料和天氣預報。系統會自動從中央氣象局獲取最新資料。';
-                        } else if (userMessage.includes('澎湖') || userMessage.includes('新北')) {
-                            response = '您可以通過側邊欄切換不同地區的天氣資訊。目前支援澎湖地區和新北市。';
-                        } else {
-                            response = '我可以協助您了解天氣資訊、系統操作等問題。請問您需要什麼幫助？';
-                        }
-                        this.aiMessages.push({ role: 'assistant', content: response });
-                        this.aiLoading = false;
-                    }, 1000);
+                    const response = await axios.post('/api/ai/query', { query: userMessage });
+                    if (response.data.success) {
+                        this.aiMessages.push({
+                            role: 'assistant',
+                            content: response.data.data.response || '無法取得回應'
+                        });
+                    } else {
+                        this.aiMessages.push({
+                            role: 'assistant',
+                            content: '抱歉：' + response.data.message
+                        });
+                    }
                 } catch (error) {
-                    this.aiMessages.push({ role: 'assistant', content: '抱歉，我現在無法回應您的問題。請稍後再試。' });
-                    this.aiLoading = false;
+                    this.aiMessages.push({
+                        role: 'assistant',
+                        content: '抱歉，無法連線到 AI 服務。請確認 API 伺服器正在運行。'
+                    });
                 }
+                
+                this.aiLoading = false;
             },
             logout() {
                 if (confirm('確定要登出嗎？')) {
@@ -106,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     day: '2-digit',
                     hour: '2-digit',
                     minute: '2-digit',
-                    second: '2-digit',
                 });
             },
         },

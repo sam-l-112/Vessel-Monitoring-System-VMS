@@ -51,6 +51,7 @@ createApp({
 
             if (section === 'weather') {
                 this.loadWeatherData();
+                this.loadForecastData();
             } else if (section === 'fish-data') {
                 this.loadFishData();
             } else if (section === 'feed') {
@@ -161,7 +162,8 @@ createApp({
         async loadWeatherData() {
             this.loading = true;
             try {
-                let response = await this.makeAPIRequest('/api/weather/data/cwa');
+                let areaParam = this.selectedArea !== 'newtaipei' ? '?area=' + this.selectedArea : '';
+                let response = await this.makeAPIRequest('/api/weather/data/cwa' + areaParam);
                 if (response.success && response.data && response.data.length > 0) {
                     this.weatherData = response.data;
                     if (response.data[0].temperature) {
@@ -181,6 +183,70 @@ createApp({
             } finally {
                 this.loading = false;
             }
+        },
+        async loadForecastData() {
+            this.loading = true;
+            try {
+                let areaParam = this.selectedArea !== 'newtaipei' ? 'area=' + this.selectedArea + '&' : '';
+                let response = await this.makeAPIRequest('/api/weather/forecast?' + areaParam + 'type=week');
+                if (response.success) {
+                    let rawData = response.data;
+                    let parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                    let result = typeof parsed.result === 'string' ? JSON.parse(parsed.result) : parsed;
+                    this.forecastData = this.parseForecastData(result.records);
+                }
+            } catch (error) {
+                console.error('Forecast data load error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        parseForecastData(records) {
+            if (!records || !records.Locations || !records.Locations[0]) return [];
+            let loc = records.Locations[0];
+            let location = loc.Location[0];
+            if (!location) return [];
+            
+            let forecast = [];
+            let tempData = {};
+            
+            for (let element of location.WeatherElement) {
+                let elementName = element.ElementName;
+                for (let time of element.Time) {
+                    let startTime = time.StartTime;
+                    if (!tempData[startTime]) {
+                        tempData[startTime] = { time: startTime };
+                    }
+                    if (elementName === '平均溫度' || elementName === 'Temperature') {
+                        tempData[startTime].temp = time.ElementValue ? time.ElementValue[0].Temperature : time.Parameter?.ParameterName;
+                    } else if (elementName === '最高溫度' || elementName === 'MaxTemperature') {
+                        tempData[startTime].maxTemp = time.ElementValue ? time.ElementValue[0].Temperature : time.Parameter?.ParameterName;
+                    } else if (elementName === '最低溫度' || elementName === 'MinTemperature') {
+                        tempData[startTime].minTemp = time.ElementValue ? time.ElementValue[0].Temperature : time.Parameter?.ParameterName;
+                    } else if (elementName === '天氣現象' || elementName === 'Wx') {
+                        tempData[startTime].weather = time.Parameter?.ParameterName;
+                    } else if (elementName === '降雨機率' || elementName === 'PoP') {
+                        tempData[startTime].rain = time.Parameter?.ParameterName;
+                    }
+                }
+            }
+            
+            Object.values(tempData).forEach(d => {
+                forecast.push({
+                    time: this.formatDate(d.time),
+                    temp: d.temp || '-',
+                    maxTemp: d.maxTemp || '-',
+                    minTemp: d.minTemp || '-',
+                    weather: d.weather || '-',
+                    rain: d.rain || '-'
+                });
+            });
+            
+            return forecast;
+        },
+        changeArea() {
+            this.loadWeatherData();
+            this.loadForecastData();
         },
         async loadFeedData() {
             this.loading = true;

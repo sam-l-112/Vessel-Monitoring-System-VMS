@@ -33,6 +33,11 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
+                        <li class="nav-item d-flex align-items-center me-3">
+                            <select v-model="selectedArea" @change="changeArea" class="form-select form-select-sm" style="width: auto; min-width: 120px;">
+                                <option v-for="area in areas" :key="area.value" :value="area.value">{{ area.label }}</option>
+                            </select>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="dashboard.html">
                                 <i class="fas fa-tachometer-alt me-1"></i>儀表板
@@ -91,20 +96,16 @@
                 <!-- Sidebar -->
                 <nav class="col-md-2 d-none d-md-block sidebar p-3" :class="{ show: sidebarVisible }">
                     <h5 class="text-white mb-4">
-                        <i class="fas fa-cloud-sun me-2"></i>天氣資訊
+                        <i class="fas fa-cloud-sun me-2"></i>選擇地區
                     </h5>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @click="switchArea('penghu')" :class="{ active: selectedArea === 'penghu' }">
-                                <i class="fas fa-map-marker-alt me-2"></i>澎湖地區
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @click="switchArea('newtaipei')" :class="{ active: selectedArea === 'newtaipei' }">
-                                <i class="fas fa-map-marker-alt me-2"></i>新北市
-                            </a>
-                        </li>
-                    </ul>
+                    <div class="d-flex flex-column gap-2">
+                        <button class="btn" :class="selectedArea === 'penghu' ? 'btn-warning' : 'btn-outline-light'" @click="switchArea('penghu')">
+                            <i class="fas fa-map-marker-alt me-2"></i>澎湖地區
+                        </button>
+                        <button class="btn" :class="selectedArea === 'newtaipei' ? 'btn-warning' : 'btn-outline-light'" @click="switchArea('newtaipei')">
+                            <i class="fas fa-map-marker-alt me-2"></i>新北市
+                        </button>
+                    </div>
                 </nav>
 
                 <!-- Main Content -->
@@ -202,20 +203,45 @@
                     </div>
 
                     <!-- Forecast Data Section -->
-                    <div class="row">
+                    <div class="row mt-4">
                         <div class="col-12">
                             <div class="card shadow-sm">
                                 <div class="card-header bg-success text-white">
                                     <h5 class="card-title mb-0">
                                         <i class="fas fa-calendar-alt me-2"></i>
-                                        天氣預報資料 - {{ selectedArea === 'penghu' ? '澎湖地區' : '新北市' }}
+                                        一週天氣預報 - {{ selectedArea === 'penghu' ? '澎湖地區' : '新北市' }}
                                     </h5>
                                 </div>
                                 <div class="card-body">
-                                    <div v-if="forecastRaw" class="bg-light p-3 rounded">
-                                        <pre class="small mb-0" style="max-height: 400px; overflow: auto;">{{ forecastRaw }}</pre>
+                                    <div v-if="forecastData.length > 0" class="table-responsive">
+                                        <table class="table table-bordered table-striped table-hover">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>時間</th>
+                                                    <th>天氣</th>
+                                                    <th>溫度</th>
+                                                    <th>最高溫</th>
+                                                    <th>最低溫</th>
+                                                    <th>降雨機率</th>
+                                                    <th>風速(m/s)</th>
+                                                    <th>濕度(%)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(forecast, index) in forecastData" :key="index">
+                                                    <td>{{ forecast.time }}</td>
+                                                    <td><i class="fas fa-cloud-sun me-1"></i>{{ forecast.weather }}</td>
+                                                    <td>{{ forecast.temp }}°C</td>
+                                                    <td>{{ forecast.maxTemp }}°C</td>
+                                                    <td>{{ forecast.minTemp }}°C</td>
+                                                    <td>{{ forecast.rain }}%</td>
+                                                    <td>{{ forecast.wind }}</td>
+                                                    <td>{{ forecast.humidity }}%</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <div v-else class="text-center text-muted py-4">
+                                    <div v-else-if="!loading" class="text-center text-muted py-4">
                                         <i class="fas fa-cloud fa-2x mb-2"></i>
                                         <p>尚未載入預報資料</p>
                                     </div>
