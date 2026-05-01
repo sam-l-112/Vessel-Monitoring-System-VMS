@@ -192,22 +192,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.aiLoading = true;
 
                 try {
-                    const response = await axios.post('/api/ai/query', { query: userMessage });
-                    if (response.data.success) {
+                    const response = await axios.post('/api/ai/query', { 
+                        query: userMessage 
+                    }, {
+                        timeout: 90000
+                    });
+                    
+                    if (response.data && response.data.success) {
+                        let replyText = '';
+                        if (response.data.data && response.data.data.response) {
+                            replyText = response.data.data.response;
+                        } else if (response.data.reply) {
+                            replyText = response.data.reply;
+                        }
+                        
                         this.aiMessages.push({
                             role: 'assistant',
-                            content: response.data.data.response || '無法取得回應'
+                            content: replyText || '無法取得回應'
                         });
                     } else {
+                        const errorMsg = response.data?.message || response.data?.error || '未知錯誤';
                         this.aiMessages.push({
                             role: 'assistant',
-                            content: '抱歉：' + response.data.message
+                            content: '抱歉：' + errorMsg
                         });
                     }
                 } catch (error) {
+                    console.error('AI Query Error:', error);
+                    let errorMsg = '抱歉，無法連線到 AI 服務。請確認 API 伺服器正在運行。';
+                    if (error.code === 'ECONNREFUSED') {
+                        errorMsg = '無法連線到 API 伺服器。請確認伺服器正在運行。';
+                    } else if (error.response) {
+                        errorMsg = '伺服器錯誤：' + (error.response.data?.message || error.response.status);
+                    }
                     this.aiMessages.push({
                         role: 'assistant',
-                        content: '抱歉，無法連線到 AI 服務。請確認 API 伺服器正在運行。'
+                        content: errorMsg
                     });
                 }
                 

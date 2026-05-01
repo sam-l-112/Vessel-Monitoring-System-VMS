@@ -80,22 +80,46 @@ createApp({
                     timeout: 90000
                 });
                 
-                if (response.data.success) {
-                    this.aiMessages.push({
-                        role: 'assistant',
-                        content: response.data.data.response
-                    });
+                if (response.data && response.data.success) {
+                    // Handle different response structures
+                    let replyText = '';
+                    if (response.data.data && response.data.data.response) {
+                        replyText = response.data.data.response;
+                    } else if (response.data.data && response.data.data && response.data.data.data && response.data.data.data.response) {
+                        replyText = response.data.data.data.response;
+                    } else if (response.data.reply) {
+                        replyText = response.data.reply;
+                    }
+                    
+                    if (replyText) {
+                        this.aiMessages.push({
+                            role: 'assistant',
+                            content: replyText
+                        });
+                    } else {
+                        this.aiMessages.push({
+                            role: 'assistant',
+                            content: '收到回應，但內容格式有誤'
+                        });
+                    }
                 } else {
+                    const errorMsg = response.data?.message || response.data?.error || '未知錯誤';
                     this.aiMessages.push({
                         role: 'assistant',
-                        content: '抱歉，發生錯誤：' + response.data.message
+                        content: '抱歉，發生錯誤：' + errorMsg
                     });
                 }
             } catch (error) {
                 console.error('AI Query Error:', error);
+                let errorMsg = '抱歉，無法連線到 AI 服務。請確認 API 伺服器正在運行。';
+                if (error.code === 'ECONNREFUSED') {
+                    errorMsg = '無法連線到 API 伺服器。請確認伺服器正在運行。';
+                } else if (error.response) {
+                    errorMsg = '伺服器錯誤：' + (error.response.data?.message || error.response.status);
+                }
                 this.aiMessages.push({
                     role: 'assistant',
-                    content: '抱歉，無法連線到 AI 服務。請確認 API 伺服器正在運行。'
+                    content: errorMsg
                 });
             }
             
@@ -293,8 +317,12 @@ createApp({
         initCharts() {
             const growthCtx = document.getElementById('growthChart');
             if (growthCtx && this.fishData.length > 0) {
-                if (window.growthChart) {
-                    window.growthChart.destroy();
+                if (window.growthChart && typeof window.growthChart.destroy === 'function') {
+                    try {
+                        window.growthChart.destroy();
+                    } catch(e) {
+                        console.warn('Chart destroy failed:', e);
+                    }
                 }
                 const growthData = this.fishData.slice(0, 6).map(fish => fish.weight || 1.0);
                 window.growthChart = new Chart(growthCtx, {
@@ -320,8 +348,12 @@ createApp({
 
             const waterCtx = document.getElementById('waterQualityChart');
             if (waterCtx && this.weatherData.length > 0) {
-                if (window.waterQualityChart) {
-                    window.waterQualityChart.destroy();
+                if (window.waterQualityChart && typeof window.waterQualityChart.destroy === 'function') {
+                    try {
+                        window.waterQualityChart.destroy();
+                    } catch(e) {
+                        console.warn('Chart destroy failed:', e);
+                    }
                 }
                 const excellent = this.weatherData.filter(w => w.ph_level >= 7.0 && w.ph_level <= 8.0).length;
                 const good = this.weatherData.filter(w => w.ph_level >= 6.5 && w.ph_level < 7.0).length;

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"vms-api/src/controllers"
 	"vms-api/src/database"
 	"vms-api/src/router"
 
@@ -83,13 +84,21 @@ func main() {
 	r.Use(corsMiddleware)
 	r.Use(loggingMiddleware)
 
-	// Health check route
+// Health check route
 	r.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, `{"success":true,"message":"VMS API is running","data":{"timestamp":"%s","version":"1.0.0"}}`,
 			time.Now().Format(time.RFC3339))
 	}).Methods("GET")
+
+	// OpenCLI Gemini routes
+	r.HandleFunc("/api/opencli/gemini/status", controllers.GeminiStatusHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/opencli/gemini/chat", controllers.GeminiHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/opencli/gemini/setup", controllers.GeminiSetupHandler).Methods("POST", "OPTIONS")
+
+	// AI Query route (for frontend CWA_WI.js)
+	r.HandleFunc("/api/ai/query", controllers.AIQueryHandler).Methods("POST", "OPTIONS")
 
 	// Setup routes from packages
 	router.LoginRoutes(r)
