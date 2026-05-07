@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VMS - 飼料管理">
+    <meta name="keywords" content="養殖,飼料,管理">
+    <meta name="author" content="VMS Team">
+
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/Feed_Control.css">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <title>飼料管理 - VMS</title>
+</head>
+<body>
+    <div id="app" class="fade-in">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand d-flex align-items-center" href="#">
+                    <i class="fas fa-seedling me-2"></i>
+                    VMS - 飼料管理
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.html">
+                                <i class="fas fa-home me-1"></i>回首頁
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @click="logout">
+                                <i class="fas fa-sign-out-alt me-1"></i>登出
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid py-4">
+            <!-- Header -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="fas fa-seedling me-2"></i>飼料管理系統</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" @click="loadFeedData">
+                            <i class="fas fa-sync-alt me-1"></i>刷新
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success" @click="showAddFeedModal">
+                            <i class="fas fa-plus me-1"></i>新增飼料
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="loading" class="loading-overlay">
+                <div class="loading-spinner"></div>
+            </div>
+
+            <!-- Error -->
+            <div v-if="error" class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>{{ error }}
+            </div>
+
+            <!-- Feed Data Table -->
+            <div v-if="feedData.length > 0" class="data-section">
+                <h3><i class="fas fa-seedling me-2"></i>飼料使用記錄</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>飼料類型</th>
+                                <th>數量</th>
+                                <th>單位</th>
+                                <th>餵食時間</th>
+                                <th>用戶</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="feed in feedData" :key="feed.id">
+                                <td><strong>{{ feed.feed_type }}</strong></td>
+                                <td><span class="value">{{ feed.quantity }}</span></td>
+                                <td>{{ feed.unit }}</td>
+                                <td>{{ formatDate(feed.feed_time) }}</td>
+                                <td>{{ feed.user ? feed.user.username : '系統' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" @click="editFeed(feed)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @click="deleteFeed(feed.id)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else-if="!loading" class="empty-state">
+                <i class="fas fa-seedling"></i>
+                <h4>尚未有飼料記錄</h4>
+                <p>系統尚未記錄任何飼料使用數據。</p>
+                <button class="btn btn-primary" @click="showAddFeedModal">
+                    <i class="fas fa-plus me-1"></i>新增第一筆飼料記錄
+                </button>
+            </div>
+        </div>
+
+        <!-- Add/Edit Feed Modal -->
+        <div v-if="showFeedModal" class="modal-overlay" @click.self="closeFeedModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ editingFeed ? '編輯飼料' : '新增飼料' }}</h5>
+                    <button type="button" class="btn-close" @click="closeFeedModal"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="saveFeedData">
+                        <div class="form-group">
+                            <label class="form-label">🌾 飼料類型</label>
+                            <input type="text" class="form-control" v-model="feedForm.feed_type" required placeholder="例如：魚飼料、蝦飼料">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">📊 數量</label>
+                            <input type="number" class="form-control" v-model.number="feedForm.quantity" required min="0.1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">📦 單位</label>
+                            <select class="form-select" v-model="feedForm.unit">
+                                <option value="kg">公斤 (kg)</option>
+                                <option value="g">克 (g)</option>
+                                <option value="袋">袋</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @click="closeFeedModal">取消</button>
+                            <button type="submit" class="btn btn-primary" :disabled="savingFeed">
+                                {{ savingFeed ? '儲存中...' : '儲存' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application JavaScript -->
+    <script src="/js/Feed_Control.js?v=20240504g"></script>
+</body>
+</html>

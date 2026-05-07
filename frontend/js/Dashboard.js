@@ -25,6 +25,23 @@ createApp({
             weatherData: [],
             forecastData: [],
             feedData: [],
+            showFishModal: false,
+            savingFish: false,
+            editingFish: null,
+            fishForm: {
+                fish_type: '',
+                quantity: null,
+                weight: null,
+                health_status: 'good'
+            },
+            showFeedModal: false,
+            savingFeed: false,
+            editingFeed: null,
+            feedForm: {
+                feed_type: '',
+                quantity: null,
+                unit: 'kg'
+            },
             metrics: {
                 totalFish: 0,
                 healthIndex: 0,
@@ -73,13 +90,14 @@ createApp({
             this.aiLoading = true;
 
             try {
+                // 使用 OpenCLI API (Gemini)
                 const response = await axios.post(`${this.apiBase}/api/ai/query`, {
                     query: userMessage
                 }, {
                     headers: { 'Content-Type': 'application/json' },
                     timeout: 90000
                 });
-                
+
                 if (response.data && response.data.success) {
                     // Handle different response structures
                     let replyText = '';
@@ -156,7 +174,21 @@ createApp({
 
                 await this.loadWeatherData();
 
-                this.metrics.healthIndex = Math.floor(Math.random() * 20) + 80;
+                // 根据鱼群健康状态计算健康指数
+                if (this.fishData.length > 0) {
+                    const healthScores = { 'excellent': 100, 'good': 85, 'fair': 65, 'poor': 40 };
+                    let totalScore = 0;
+                    let totalWeight = 0;
+                    this.fishData.forEach(fish => {
+                        const score = healthScores[fish.health_status] || 50;
+                        const weight = fish.weight || 1;
+                        totalScore += score * weight;
+                        totalWeight += weight;
+                    });
+                    this.metrics.healthIndex = totalWeight > 0 ? Math.floor(totalScore / totalWeight) : 0;
+                } else {
+                    this.metrics.healthIndex = 0;
+                }
                 this.metrics.alerts = 0;
 
                 this.generateRecentActivities();
@@ -181,6 +213,121 @@ createApp({
                 this.error = '無法載入魚類數據';
             } finally {
                 this.loading = false;
+            }
+        },
+        showAddFishModal() {
+            console.log('showAddFishModal called');
+            this.editingFish = null;
+            this.fishForm = {
+                fish_type: '',
+                quantity: null,
+                weight: null,
+                health_status: 'good'
+            };
+            this.showFishModal = true;
+            console.log('showFishModal set to:', this.showFishModal);
+        },
+        editFish(fish) {
+            this.editingFish = fish;
+            this.fishForm = {
+                id: fish.id,
+                fish_type: fish.fish_type,
+                quantity: fish.quantity,
+                weight: fish.weight,
+                health_status: fish.health_status
+            };
+            this.showFishModal = true;
+        },
+        closeFishModal() {
+            this.showFishModal = false;
+            this.editingFish = null;
+            this.fishForm = {
+                fish_type: '',
+                quantity: null,
+                weight: null,
+                health_status: 'good'
+            };
+        },
+        async saveFishData() {
+            this.savingFish = true;
+            try {
+                let response;
+                if (this.editingFish) {
+                    // Update existing fish
+                    response = await axios.put(`${this.apiBase}/api/fish/data`, this.fishForm, {
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } else {
+                    // Create new fish
+                    response = await axios.post(`${this.apiBase}/api/fish/data`, this.fishForm, {
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+                if (response.data.success) {
+                    this.closeFishModal();
+                    this.loadFishData();
+                    alert('魚類數據已儲存！');
+                } else {
+                    alert('儲存失敗：' + response.data.message);
+                }
+            } catch (error) {
+                alert('儲存失敗：' + (error.response?.data?.message || error.message));
+            } finally {
+                this.savingFish = false;
+            }
+        },
+        showAddFeedModal() {
+            this.editingFeed = null;
+            this.feedForm = {
+                feed_type: '',
+                quantity: null,
+                unit: 'kg'
+            };
+            this.showFeedModal = true;
+        },
+        editFeed(feed) {
+            this.editingFeed = feed;
+            this.feedForm = {
+                id: feed.id,
+                feed_type: feed.feed_type,
+                quantity: feed.quantity,
+                unit: feed.unit || 'kg'
+            };
+            this.showFeedModal = true;
+        },
+        closeFeedModal() {
+            this.showFeedModal = false;
+            this.editingFeed = null;
+            this.feedForm = {
+                feed_type: '',
+                quantity: null,
+                unit: 'kg'
+            };
+        },
+        async saveFeedData() {
+            this.savingFeed = true;
+            try {
+                let response;
+                if (this.editingFeed) {
+                    response = await axios.put(`${this.apiBase}/api/feed/data`, this.feedForm, {
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } else {
+                    response = await axios.post(`${this.apiBase}/api/feed/data`, this.feedForm, {
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+                if (response.data.success) {
+                    this.closeFeedModal();
+                    this.loadFeedData();
+                    alert('飼料數據已儲存！');
+                } else {
+                    alert('儲存失敗：' + response.data.message);
+                }
+            } catch (error) {
+                alert('儲存失敗：' + (error.response?.data?.message || error.message));
+            } finally {
+                this.savingFeed = false;
             }
         },
         async loadWeatherData() {
@@ -316,71 +463,97 @@ createApp({
         },
         initCharts() {
             const growthCtx = document.getElementById('growthChart');
-            if (growthCtx && this.fishData.length > 0) {
-                if (window.growthChart && typeof window.growthChart.destroy === 'function') {
+            if (growthCtx && this.fishData.length > 0 && typeof Chart !== 'undefined') {
+                // 使用前綴底線避免與 DOM ID 衝突
+                if (window._growthChart && typeof window._growthChart.destroy === 'function') {
                     try {
-                        window.growthChart.destroy();
+                        window._growthChart.destroy();
                     } catch(e) {
                         console.warn('Chart destroy failed:', e);
                     }
                 }
-                const growthData = this.fishData.slice(0, 6).map(fish => fish.weight || 1.0);
-                window.growthChart = new Chart(growthCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
-                        datasets: [{
-                            label: '平均體重 (kg)',
-                            data: growthData,
-                            borderColor: 'rgb(37, 99, 235)',
-                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
+                // 使用鱼种名称作为标签，数量作为数据
+                const fishLabels = this.fishData.map(fish => fish.fish_type || '未知');
+                const fishQuantities = this.fishData.map(fish => fish.quantity || 0);
+                try {
+                    window._growthChart = new Chart(growthCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: fishLabels,
+                            datasets: [{
+                                label: '數量 (尾)',
+                                data: fishQuantities,
+                                backgroundColor: [
+                                    'rgba(37, 99, 235, 0.7)',
+                                    'rgba(16, 185, 129, 0.7)',
+                                    'rgba(245, 158, 11, 0.7)',
+                                    'rgba(239, 68, 68, 0.7)',
+                                    'rgba(139, 92, 246, 0.7)',
+                                    'rgba(236, 72, 153, 0.7)'
+                                ],
+                                borderColor: [
+                                    'rgb(37, 99, 235)',
+                                    'rgb(16, 185, 129)',
+                                    'rgb(245, 158, 11)',
+                                    'rgb(239, 68, 68)',
+                                    'rgb(139, 92, 246)',
+                                    'rgb(236, 72, 153)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                } catch(e) {
+                    console.warn('Growth chart create failed:', e);
+                }
             }
 
             const waterCtx = document.getElementById('waterQualityChart');
-            if (waterCtx && this.weatherData.length > 0) {
-                if (window.waterQualityChart && typeof window.waterQualityChart.destroy === 'function') {
+            if (waterCtx && this.weatherData.length > 0 && typeof Chart !== 'undefined') {
+                // 使用前綴底線避免與 DOM ID 衝突
+                if (window._waterQualityChart && typeof window._waterQualityChart.destroy === 'function') {
                     try {
-                        window.waterQualityChart.destroy();
+                        window._waterQualityChart.destroy();
                     } catch(e) {
                         console.warn('Chart destroy failed:', e);
                     }
                 }
-                const excellent = this.weatherData.filter(w => w.ph_level >= 7.0 && w.ph_level <= 8.0).length;
-                const good = this.weatherData.filter(w => w.ph_level >= 6.5 && w.ph_level < 7.0).length;
-                const fair = this.weatherData.filter(w => w.ph_level >= 6.0 && w.ph_level < 6.5).length;
-                const poor = this.weatherData.filter(w => w.ph_level < 6.0).length;
-                const total = this.weatherData.length || 1;
+                try {
+                    const excellent = this.weatherData.filter(w => w.ph_level >= 7.0 && w.ph_level <= 8.0).length;
+                    const good = this.weatherData.filter(w => w.ph_level >= 6.5 && w.ph_level < 7.0).length;
+                    const fair = this.weatherData.filter(w => w.ph_level >= 6.0 && w.ph_level < 6.5).length;
+                    const poor = this.weatherData.filter(w => w.ph_level < 6.0).length;
+                    const total = this.weatherData.length || 1;
 
-                window.waterQualityChart = new Chart(waterCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['優良', '良好', '一般', '需改善'],
-                        datasets: [{
-                            data: [
-                                Math.round((excellent / total) * 100),
-                                Math.round((good / total) * 100),
-                                Math.round((fair / total) * 100),
-                                Math.round((poor / total) * 100)
-                            ],
-                            backgroundColor: ['rgb(16, 185, 129)', 'rgb(59, 130, 246)', 'rgb(245, 158, 11)', 'rgb(239, 68, 68)']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } }
-                    }
-                });
+                    window._waterQualityChart = new Chart(waterCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['優良', '良好', '一般', '需改善'],
+                            datasets: [{
+                                data: [
+                                    Math.round((excellent / total) * 100),
+                                    Math.round((good / total) * 100),
+                                    Math.round((fair / total) * 100),
+                                    Math.round((poor / total) * 100)
+                                ],
+                                backgroundColor: ['rgb(16, 185, 129)', 'rgb(59, 130, 246)', 'rgb(245, 158, 11)', 'rgb(239, 68, 68)']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom' } }
+                        }
+                    });
+                } catch(e) {
+                    console.warn('Water chart create failed:', e);
+                }
             }
         },
         refreshData() {

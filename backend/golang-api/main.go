@@ -100,9 +100,16 @@ func main() {
 	// AI Query route (for frontend CWA_WI.js)
 	r.HandleFunc("/api/ai/query", controllers.AIQueryHandler).Methods("POST", "OPTIONS")
 
+	// OpenCLAW AI Chat route
+	r.HandleFunc("/api/openclaw/chat", controllers.OpenCLAWChatHandler).Methods("POST", "OPTIONS")
+
+	// Daily Report route (automatic report for fishermen)
+	r.HandleFunc("/api/daily-report", controllers.DailyReportHandler).Methods("GET", "OPTIONS")
+
 	// Setup routes from packages
 	router.LoginRoutes(r)
 	router.DataRoutes(r)
+	router.AIRoutes(r)
 
 	// Static file server for documentation (optional)
 	r.PathPrefix("/docs/").Handler(http.StripPrefix("/docs/", http.FileServer(http.Dir("./docs/"))))

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"vms-api/src/database"
 	"vms-api/src/models"
 )
@@ -85,6 +86,11 @@ func (fc *FishController) AddFishData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Use default user_id if not provided
+	if fishReq.UserID == 0 {
+		fishReq.UserID = 1
+	}
+
 	_, err := database.DB.Exec(`
 		INSERT INTO fish_data (user_id, fish_type, quantity, weight, health_status)
 		VALUES (?, ?, ?, ?, ?)`,
@@ -103,6 +109,56 @@ func (fc *FishController) AddFishData(w http.ResponseWriter, r *http.Request) {
 	response := models.APIResponse{
 		Success: true,
 		Message: "Fish data added successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// UpdateFishData updates existing fish data
+func (fc *FishController) UpdateFishData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "PUT" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var fishReq struct {
+		ID           int     `json:"id"`
+		FishType     string  `json:"fish_type"`
+		Quantity     int     `json:"quantity"`
+		Weight       float64 `json:"weight"`
+		HealthStatus string  `json:"health_status"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&fishReq); err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Invalid JSON format",
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	_, err := database.DB.Exec(`
+		UPDATE fish_data 
+		SET fish_type = ?, quantity = ?, weight = ?, health_status = ?, updated_at = NOW()
+		WHERE id = ?`,
+		fishReq.FishType, fishReq.Quantity, fishReq.Weight, fishReq.HealthStatus, fishReq.ID)
+
+	if err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Failed to update fish data",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := models.APIResponse{
+		Success: true,
+		Message: "Fish data updated successfully",
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -195,6 +251,273 @@ func (fc *FeedController) GetFeedData(w http.ResponseWriter, r *http.Request) {
 		Success: true,
 		Data:    feedData,
 		Message: "Feed data retrieved successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// AddFeedData adds new feed record
+func (fc *FeedController) AddFeedData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var feedReq struct {
+		UserID    int     `json:"user_id"`
+		FeedType string  `json:"feed_type"`
+		Quantity  float64 `json:"quantity"`
+		Unit      string  `json:"unit"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&feedReq); err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Invalid JSON format",
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if feedReq.UserID == 0 {
+		feedReq.UserID = 1
+	}
+	if feedReq.Unit == "" {
+		feedReq.Unit = "kg"
+	}
+
+	_, err := database.DB.Exec(`
+		INSERT INTO feed_data (user_id, feed_type, quantity, unit)
+		VALUES (?, ?, ?, ?)`,
+		feedReq.UserID, feedReq.FeedType, feedReq.Quantity, feedReq.Unit)
+
+	if err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Failed to add feed data",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := models.APIResponse{
+		Success: true,
+		Message: "Feed data added successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// UpdateFeedData updates existing feed record
+func (fc *FeedController) UpdateFeedData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "PUT" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var feedReq struct {
+		ID        int     `json:"id"`
+		FeedType  string  `json:"feed_type"`
+		Quantity  float64 `json:"quantity"`
+		Unit      string  `json:"unit"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&feedReq); err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Invalid JSON format",
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	_, err := database.DB.Exec(`
+		UPDATE feed_data 
+		SET feed_type = ?, quantity = ?, unit = ?, feed_time = NOW()
+		WHERE id = ?`,
+		feedReq.FeedType, feedReq.Quantity, feedReq.Unit, feedReq.ID)
+
+	if err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Failed to update feed data",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := models.APIResponse{
+		Success: true,
+		Message: "Feed data updated successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// DeleteFishData deletes fish data by ID
+func (fc *FishController) DeleteFishData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "DELETE" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	_, err := database.DB.Exec("DELETE FROM fish_data WHERE id = ?", id)
+	if err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Failed to delete fish data",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := models.APIResponse{
+		Success: true,
+		Message: "Fish data deleted successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// UpdateFishDataByID updates fish data by ID (URL parameter)
+func (fc *FishController) UpdateFishDataByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "PUT" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	var fishReq struct {
+		FishType     string  `json:"fish_type"`
+		Quantity     int     `json:"quantity"`
+		Weight       float64 `json:"weight"`
+		HealthStatus string  `json:"health_status"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&fishReq); err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Invalid JSON format",
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	_, err := database.DB.Exec(`
+		UPDATE fish_data 
+		SET fish_type = ?, quantity = ?, weight = ?, health_status = ?, updated_at = NOW()
+		WHERE id = ?`,
+		fishReq.FishType, fishReq.Quantity, fishReq.Weight, fishReq.HealthStatus, id)
+
+	if err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Failed to update fish data",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := models.APIResponse{
+		Success: true,
+		Message: "Fish data updated successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// DeleteFeedData deletes feed data by ID
+func (fc *FeedController) DeleteFeedData(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "DELETE" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	_, err := database.DB.Exec("DELETE FROM feed_data WHERE id = ?", id)
+	if err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Failed to delete feed data",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := models.APIResponse{
+		Success: true,
+		Message: "Feed data deleted successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// UpdateFeedDataByID updates feed data by ID (URL parameter)
+func (fc *FeedController) UpdateFeedDataByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "PUT" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	var feedReq struct {
+		FeedType  string  `json:"feed_type"`
+		Quantity  float64 `json:"quantity"`
+		Unit      string  `json:"unit"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&feedReq); err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Invalid JSON format",
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	_, err := database.DB.Exec(`
+		UPDATE feed_data 
+		SET feed_type = ?, quantity = ?, unit = ?, feed_time = NOW()
+		WHERE id = ?`,
+		feedReq.FeedType, feedReq.Quantity, feedReq.Unit, id)
+
+	if err != nil {
+		response := models.APIResponse{
+			Success: false,
+			Message: "Failed to update feed data",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := models.APIResponse{
+		Success: true,
+		Message: "Feed data updated successfully",
 	}
 	json.NewEncoder(w).Encode(response)
 }
