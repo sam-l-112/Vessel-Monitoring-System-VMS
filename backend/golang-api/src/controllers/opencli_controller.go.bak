@@ -1,562 +1,307 @@
 package controllers
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"os/exec"
-	"regexp"
-	"strings"
-	"time"
+    "context"
+    "encoding/json"
+    "fmt"
+    "io"
+    "log"
+    "net/http"
+    "os"
+    "os/exec"
+    "strings"
+    "time"
 )
 
-// ============== Request/Response Types ==============
-
+// GeminiRequest is the input payload for Gemini chat requests.
 type GeminiRequest struct {
-	Message string `json:"message"`
+    Message string `json:"message"`
 }
 
+// GeminiResponse is the output payload returned to the frontend.
 type GeminiResponse struct {
-	Success  bool   `json:"success"`
-	Message  string `json:"message,omitempty"`
-	Reply    string `json:"reply,omitempty"`
-	Error    string `json:"error,omitempty"`
-	FullHTML string `json:"full_html,omitempty"`
+    Success  bool   `json:"success"`
+    Message  string `json:"message,omitempty"`
+    Reply    string `json:"reply,omitempty"`
+    Error    string `json:"error,omitempty"`
+    FullHTML string `json:"full_html,omitempty"`
 }
 
-type StatusResponse struct {
-	Success   bool        `json:"success"`
-	Status    string      `json:"status"`
-	Message   string      `json:"message"`
-	Details   interface{} `json:"details,omitempty"`
-	Commands  []string    `json:"setup_commands,omitempty"`
-}
-
-// ============== Main Handler ==============
-
-func GeminiHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	// Handle OPTIONS for CORS
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	// Only allow POST method
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(GeminiResponse{
-			Success: false,
-			Error:   "Method not allowed. Use POST",
-		})
-		return
-	}
-
-	// Parse request body
-	var req GeminiRequest
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(GeminiResponse{
-			Success: false,
-			Error:   "Failed to read request body",
-		})
-		return
-	}
-	defer r.Body.Close()
-
-	if err := json.Unmarshal(body, &req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(GeminiResponse{
-			Success: false,
-			Error:   "Invalid JSON format. Expected: {\"message\": \"your question\"}",
-		})
-		return
-	}
-
-	// Validate message
-	if strings.TrimSpace(req.Message) == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(GeminiResponse{
-			Success: false,
-			Error:   "Message cannot be empty",
-		})
-		return
-	}
-
-	// Ensure prerequisites are running
-	if err := ensureOpenCLIAndChrome(); err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(GeminiResponse{
-			Success: false,
-			Error:   fmt.Sprintf("System not ready: %v. Run: /home/ouo/project_f/backend/golang-api/scripts/gemini-start.sh", err),
-		})
-		return
-	}
-
-	// Call Gemini via OpenCLI
-	reply, fullHTML, err := callGeminiViaOpenCLI(req.Message)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(GeminiResponse{
-			Success: false,
-			Error:   fmt.Sprintf("Failed to get Gemini response: %v", err),
-		})
-		return
-	}
-
-	// Return successful response
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(GeminiResponse{
-		Success:  true,
-		Message:  "Message sent to Gemini successfully",
-		Reply:    reply,
-		FullHTML: fullHTML,
-	})
-}
-
-// ============== Status Handler ==============
-
-func GeminiStatusHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	// Check all prerequisites
-	status := checkSystemStatus()
-
-	w.WriteHeader(status.Code)
-	json.NewEncoder(w).Encode(status)
-}
-
-// ============== System Status Check ==============
-
+// SystemStatus is the response payload for the status endpoint.
 type SystemStatus struct {
-	Code    int         `json:"code"`
-	Success bool        `json:"success"`
-	Status  string      `json:"status"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details,omitempty"`
+    Code    int         `json:"code"`
+    Success bool        `json:"success"`
+    Status  string      `json:"status"`
+    Message string      `json:"message"`
+    Details interface{} `json:"details,omitempty"`
+}
+
+const (
+    openCLIHomePath = "/home/ouo/OpenCLI/dist/src/main.js"
+    nodePathStatic  = "/home/ouo/.nvm/versions/node/v24.15.0/bin/node"
+    geminiURL       = "https://gemini.google.com/app/7aeec6192d00009f?hl=zh-tw"
+)
+
+// GeminiHandler receives a message and forwards it to Gemini via OpenCLI.
+func GeminiHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+    if r.Method == http.MethodOptions {
+        w.WriteHeader(http.StatusOK)
+        return
+    }
+
+    if r.Method != http.MethodPost {
+        w.WriteHeader(http.StatusMethodNotAllowed)
+        json.NewEncoder(w).Encode(GeminiResponse{Success: false, Error: "Method not allowed. Use POST"})
+        return
+    }
+
+    var req GeminiRequest
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        json.NewEncoder(w).Encode(GeminiResponse{Success: false, Error: "Failed to read request body"})
+        return
+    }
+    defer r.Body.Close()
+
+    if err := json.Unmarshal(body, &req); err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        json.NewEncoder(w).Encode(GeminiResponse{Success: false, Error: "Invalid JSON format. Expected {\"message\": \"...\"}"})
+        return
+    }
+
+    req.Message = strings.TrimSpace(req.Message)
+    if req.Message == "" {
+        w.WriteHeader(http.StatusBadRequest)
+        json.NewEncoder(w).Encode(GeminiResponse{Success: false, Error: "Message cannot be empty"})
+        return
+    }
+
+    if err := ensureOpenCLIReady(); err != nil {
+        w.WriteHeader(http.StatusServiceUnavailable)
+        json.NewEncoder(w).Encode(GeminiResponse{Success: false, Error: fmt.Sprintf("OpenCLI not ready: %v", err)})
+        return
+    }
+
+    reply, fullHTML, err := callGeminiViaOpenCLI(req.Message)
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        json.NewEncoder(w).Encode(GeminiResponse{Success: false, Error: fmt.Sprintf("Failed to get Gemini response: %v", err)})
+        return
+    }
+
+    json.NewEncoder(w).Encode(GeminiResponse{
+        Success:  true,
+        Message:  "Gemini reply received",
+        Reply:    cleanGeminiResponse(reply),
+        FullHTML: fullHTML,
+    })
+}
+
+// GeminiStatusHandler returns the current OpenCLI/Gemini readiness state.
+func GeminiStatusHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+    if r.Method == http.MethodOptions {
+        w.WriteHeader(http.StatusOK)
+        return
+    }
+
+    status := checkSystemStatus()
+    w.WriteHeader(status.Code)
+    json.NewEncoder(w).Encode(status)
 }
 
 func checkSystemStatus() SystemStatus {
-	// Check 1: OpenCLI daemon - use doctor command
-	cmd := exec.Command("bash", "-c", "cd ~/OpenCLI && node dist/src/main.js doctor 2>&1")
-	output, err := cmd.Output()
-	if err != nil || !strings.Contains(string(output), "Everything looks good") {
-		return SystemStatus{
-			Code:    http.StatusServiceUnavailable,
-			Success: false,
-			Status:  "daemon_not_running",
-			Message: "OpenCLI daemon is not running or not responding",
-			Details: map[string]interface{}{
-				"doctor_output": string(output),
-				"solution":      "Run: /home/ouo/project_f/backend/golang-api/scripts/gemini-start.sh",
-				"script_path":   "/home/ouo/project_f/backend/golang-api/scripts/gemini-start.sh",
-			},
-		}
-	}
+    if err := ensureOpenCLIReady(); err != nil {
+        return SystemStatus{
+            Code:    http.StatusServiceUnavailable,
+            Success: false,
+            Status:  "not_ready",
+            Message: fmt.Sprintf("OpenCLI unavailable: %v", err),
+        }
+    }
 
-	// Check 2: Chrome process
-	cmd = exec.Command("pgrep", "-f", "chrome")
-	if err = cmd.Run(); err != nil {
-		return SystemStatus{
-			Code:    http.StatusServiceUnavailable,
-			Success: false,
-			Status:  "chrome_not_running",
-			Message: "Chrome is not running",
-			Details: map[string]interface{}{
-				"solution": "Run: google-chrome --remote-debugging-port=9222 &",
-				"check":    "pgrep -f chrome",
-			},
-		}
-	}
-
-	// Check 3: gemini-ask.sh exists
-	if _, err := os.Stat("/home/ouo/project_f/backend/golang-api/scripts/gemini-ask.sh"); os.IsNotExist(err) {
-		return SystemStatus{
-			Code:    http.StatusServiceUnavailable,
-			Success: false,
-			Status:  "script_not_found",
-			Message: "gemini-ask.sh script not found",
-			Details: map[string]interface{}{
-				"path": "/home/ouo/project_f/backend/golang-api/scripts/gemini-ask.sh",
-			},
-		}
-	}
-
-	return SystemStatus{
-		Code:    http.StatusOK,
-		Success: true,
-		Status:  "ready",
-		Message: "Gemini API is ready to use",
-		Details: map[string]interface{}{
-			"endpoints": map[string]string{
-				"chat":   "POST /api/opencli/gemini/chat",
-				"status": "GET  /api/opencli/gemini/status",
-			},
-			"example": map[string]string{
-				"method": "POST",
-				"url":    "/api/opencli/gemini/chat",
-				"body":   "{\"message\": \"你好，請介紹你自己\"}",
-			},
-			"standby_note": "System is configured to work during screen-off/standby",
-		},
-	}
+    return SystemStatus{
+        Code:    http.StatusOK,
+        Success: true,
+        Status:  "ready",
+        Message: "OpenCLI and Gemini are ready",
+        Details: map[string]string{
+            "chat":   "POST /api/ai/query",
+            "status": "GET  /api/ai/query",
+        },
+    }
 }
 
-// ============== Ensure Prerequisites ==============
+func ensureOpenCLIReady() error {
+    openCLI, nodePath, err := resolveOpenCLIPaths()
+    if err != nil {
+        return err
+    }
 
-func ensureOpenCLIAndChrome() error {
-	// Check OpenCLI daemon via doctor command (more reliable)
-	cmd := exec.Command("bash", "-c", "cd ~/OpenCLI && node dist/src/main.js doctor 2>&1")
-	output, err := cmd.Output()
-	if err != nil || !strings.Contains(string(output), "Everything looks good") {
-		return fmt.Errorf("OpenCLI daemon not responding. Run: /home/ouo/project_f/backend/golang-api/scripts/gemini-start.sh")
-	}
+    cmd := exec.Command("bash", "-lc", fmt.Sprintf("%s %s doctor 2>&1", nodePath, openCLI))
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        return fmt.Errorf("doctor failed: %v: %s", err, strings.TrimSpace(string(output)))
+    }
 
-	// Check Chrome - just check if it's running
-	cmd = exec.Command("pgrep", "-f", "chrome")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Chrome not running. Run: google-chrome --remote-debugging-port=9222 &")
-	}
+    if !strings.Contains(string(output), "[OK]") {
+        return fmt.Errorf("doctor output not healthy: %s", strings.TrimSpace(string(output)))
+    }
 
-	return nil
+    return nil
 }
 
-// ============== Call Gemini directly via OpenCLI ==============
+func resolveOpenCLIPaths() (string, string, error) {
+    openCLI := openCLIHomePath
+    nodePath := nodePathStatic
+
+    if _, err := os.Stat(openCLI); os.IsNotExist(err) {
+        home := os.Getenv("HOME")
+        openCLI = fmt.Sprintf("%s/OpenCLI/dist/src/main.js", home)
+        nodePath = fmt.Sprintf("%s/.nvm/versions/node/v24.15.0/bin/node", home)
+        if _, err := os.Stat(openCLI); os.IsNotExist(err) {
+            return "", "", fmt.Errorf("OpenCLI not found at %s or %s", openCLIHomePath, openCLI)
+        }
+    }
+
+    return openCLI, nodePath, nil
+}
 
 func callGeminiViaOpenCLI(message string) (string, string, error) {
-	openCLIPath := os.Getenv("HOME") + "/OpenCLI/dist/src/main.js"
-	
-	// Verify OpenCLI exists
-	if _, err := os.Stat(openCLIPath); os.IsNotExist(err) {
-		// Try alternative path
-		openCLIPath = "/home/ouo/OpenCLI/dist/src/main.js"
-		if _, err := os.Stat(openCLIPath); os.IsNotExist(err) {
-			return "", "", fmt.Errorf("OpenCLI not found at %s", openCLIPath)
-		}
-	}
+    openCLI, nodePath, err := resolveOpenCLIPaths()
+    if err != nil {
+        return "", "", err
+    }
 
-	// Execute with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
+    ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+    defer cancel()
 
-	// Step 1: Open Gemini
-	cmd := exec.CommandContext(ctx, "node", openCLIPath, "browser", "open", "https://gemini.google.com/app")
-	cmd.Dir = "/home/ouo/OpenCLI"
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return "", "", fmt.Errorf("failed to open Gemini: %v, output: %s", err, string(output))
-	}
-	
-	// Wait for page load
-	time.Sleep(4 * time.Second)
+    cmd := exec.CommandContext(ctx, nodePath, openCLI, "browser", "open", geminiURL)
+    cmd.Dir = "/home/ouo/OpenCLI"
+    if out, err := cmd.CombinedOutput(); err != nil {
+        return "", "", fmt.Errorf("failed to open Gemini page: %v: %s", err, string(out))
+    }
+    time.Sleep(3 * time.Second)
 
-	// Step 2: Get browser state to find input index
-	cmd = exec.CommandContext(ctx, "node", openCLIPath, "browser", "state")
-	stateOutput, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get browser state: %v", err)
-	}
+    cmd = exec.CommandContext(ctx, nodePath, openCLI, "browser", "eval", `
+        (async function() {
+            const newChat = document.querySelector("div[aria-label='新對話'], div[aria-label='New chat'], a[href*='new']");
+            if (newChat) {
+                newChat.click();
+                await new Promise(r => setTimeout(r, 1500));
+            }
+            return document.body.innerText;
+        })()
+    `)
+    cmd.Dir = "/home/ouo/OpenCLI"
+    cmd.CombinedOutput()
+    time.Sleep(2 * time.Second)
 
-	// Parse state to find input box index (look for contenteditable div with 請輸入)
-	stateStr := string(stateOutput)
-	inputIndex := "9" // default fallback
-	
-	// Extract input index from state output - look for pattern like [9]<div contenteditable=true...
-	re := regexp.MustCompile(`\[(\d+)\]<div contenteditable=true.*aria-label.*請輸入`)
-	matches := re.FindStringSubmatch(stateStr)
-	if len(matches) > 1 {
-		inputIndex = matches[1]
-	}
+    escaped := strings.ReplaceAll(message, "'", "\\'")
+    cmd = exec.CommandContext(ctx, nodePath, openCLI, "browser", "eval", fmt.Sprintf(`
+        (async function() {
+            const text = '%s';
+            const selectors = [
+                "div.ql-editor",
+                "div[contenteditable='true'][role='textbox']",
+                "div[contenteditable='true']",
+                "textarea",
+            ];
+            let input = null;
+            for (const sel of selectors) {
+                input = document.querySelector(sel);
+                if (input) break;
+            }
+            if (!input) return "INPUT_NOT_FOUND";
+            input.focus();
+            const range = document.createRange();
+            range.selectNodeContents(input);
+            range.collapse(false);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            document.execCommand('insertText', false, text);
+            const buttons = Array.from(document.querySelectorAll('button'));
+            for (const btn of buttons) {
+                const label = btn.getAttribute('aria-label') || '';
+                if (label.includes('傳送') || label.includes('Send') || label.includes('Submit')) {
+                    btn.click();
+                    break;
+                }
+            }
+            return 'SENT';
+        })()
+    `, escaped))
+    cmd.Dir = "/home/ouo/OpenCLI"
+    if out, err := cmd.CombinedOutput(); err != nil {
+        return "", "", fmt.Errorf("failed to send message: %v: %s", err, string(out))
+    }
 
-	// Step 3: Type message
-	cmd = exec.CommandContext(ctx, "node", openCLIPath, "browser", "type", inputIndex, message)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return "", "", fmt.Errorf("failed to type message: %v, output: %s", err, string(output))
-	}
-	
-	// Wait for input to register
-	time.Sleep(2 * time.Second)
+    time.Sleep(2 * time.Second)
+    cmd = exec.CommandContext(ctx, nodePath, openCLI, "browser", "eval", `
+        (async function() {
+            for (let i = 0; i < 60; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                const stopBtn = document.querySelector('[aria-label="停止生成"], [aria-label="Stop generating"]');
+                if (!stopBtn) {
+                    await new Promise(r => setTimeout(r, 500));
+                    return document.body.innerText;
+                }
+            }
+            return document.body.innerText;
+        })()
+    `)
+    cmd.Dir = "/home/ouo/OpenCLI"
+    replyOutput, err := cmd.CombinedOutput()
+    if err != nil {
+        return "", "", fmt.Errorf("failed to read Gemini response: %v: %s", err, string(replyOutput))
+    }
 
-	// Step 4: Wait for send button to be enabled
-	time.Sleep(3 * time.Second)
+    fullText := strings.TrimSpace(string(replyOutput))
+    if strings.HasPrefix(fullText, "ERROR") || strings.Contains(fullText, "INPUT_NOT_FOUND") {
+        return "", fullText, fmt.Errorf("Gemini browser eval error: %s", fullText)
+    }
 
-	// Step 5: Click send button using eval
-	cmd = exec.CommandContext(ctx, "node", openCLIPath, "browser", "eval", `
-		(function() {
-			const btns = document.querySelectorAll('button[aria-label*="傳送"]');
-			for (const b of btns) {
-				if (!b.disabled && b.offsetParent !== null) {
-					b.click();
-					return 'clicked';
-				}
-			}
-			return 'not_found';
-		})()
-	`)
-	if _, err := cmd.CombinedOutput(); err != nil {
-		return "", "", fmt.Errorf("failed to click send: %v", err)
-	}
-
-	// Step 6: Wait for response
-	time.Sleep(20 * time.Second)
-
-	// Step 7: Get response - extract actual Gemini response
-	// First check if URL changed (indicates conversation was created)
-	cmd = exec.CommandContext(ctx, "node", openCLIPath, "browser", "get", "url")
-	urlOutput, _ := cmd.CombinedOutput()
-	urlStr := strings.TrimSpace(string(urlOutput))
-	
-	// Wait a bit more for content to load
-	time.Sleep(5 * time.Second)
-	
-	// Try to extract response with multiple methods
-	cmd = exec.CommandContext(ctx, "node", openCLIPath, "browser", "eval", `
-		(function() {
-			// Method 1: Look for the response in chat-history
-			const chatHistory = document.getElementById('chat-history');
-			if (chatHistory) {
-				const historyText = chatHistory.innerText || chatHistory.textContent;
-				if (historyText && historyText.length > 50 && 
-					historyText.indexOf('你想從哪裡著手') === -1) {
-					return historyText.trim().substring(0, 2000);
-				}
-			}
-			
-			// Method 2: Look for message-content elements
-			const msgElements = document.querySelectorAll('[class*="message-content"], [class*="response-content"]');
-			if (msgElements.length > 0) {
-				const lastMsg = msgElements[msgElements.length - 1];
-				const text = lastMsg.innerText || lastMsg.textContent;
-				if (text && text.length > 20) {
-					return text.trim().substring(0, 2000);
-				}
-			}
-			
-			// Method 3: Look in model-response-text
-			const modelText = document.querySelector('.model-response-text, [data-testid="message"]');
-			if (modelText) {
-				return (modelText.innerText || modelText.textContent).trim().substring(0, 2000);
-			}
-			
-			// Method 4: Get page title as fallback
-			return document.title.split(' - Google Gemini')[0] || '';
-		})()
-	`)
-	replyOutput, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get response: %v", err)
-	}
-
-	reply := strings.TrimSpace(string(replyOutput))
-	
-	// If still empty or just the title, construct a message based on URL
-	if reply == "" || reply == "null" || reply == "undefined" || 
-	   strings.Contains(reply, "Google Gemini") || len(reply) < 10 {
-		// Check if we at least have a conversation URL
-		if strings.Contains(urlStr, "/app/") && !strings.HasSuffix(urlStr, "/app") {
-			reply = "訊息已發送至 Gemini（對話已建立，回覆內容載入中）"
-		} else {
-			reply = "無法提取 Gemini 回覆內容，但訊息可能已發送"
-		}
-	}
-
-	// If response is too short or looks like a title, add context
-	if len(reply) < 30 || strings.HasPrefix(reply, "Gemini") {
-		reply = "Gemini 回覆: " + reply
-	}
-
-	return reply, "", nil
+    return extractLastAIResponse(fullText), fullText, nil
 }
 
-// ============== Setup Handler (for initial setup) ==============
-
-func GeminiSetupHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(GeminiResponse{Success: false, Error: "Use POST"})
-		return
-	}
-
-	// Run setup commands
-	var results []map[string]string
-
-	// 1. Create scripts directory
-	mkdirCmd := exec.Command("mkdir", "-p", "/home/ouo/scripts")
-	if err := mkdirCmd.Run(); err != nil {
-		results = append(results, map[string]string{"step": "mkdir", "status": "failed", "error": err.Error()})
-	} else {
-		results = append(results, map[string]string{"step": "mkdir", "status": "ok"})
-	}
-
-	// 2. Create startup script
-	setupScript := `#!/bin/bash
-cd ~/OpenCLI
-node dist/src/main.js daemon start 2>/dev/null
-sleep 2
-google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.config/google-chrome --no-first-run --no-default-browser-check > /dev/null 2>&1 &
-echo "OpenCLI Gemini service started"
-`
-
-	scriptPath := "/home/ouo/project_f/backend/golang-api/scripts/gemini-start.sh"
-	if err := os.WriteFile(scriptPath, []byte(setupScript), 0755); err != nil {
-		results = append(results, map[string]string{"step": "write_startup_script", "status": "failed", "error": err.Error()})
-	} else {
-		results = append(results, map[string]string{"step": "write_startup_script", "status": "ok"})
-	}
-
-	// 3. Create autostart
-	autostartDir := os.Getenv("HOME") + "/.config/autostart"
-	autostartFile := autostartDir + "/gemini-opencli.desktop"
-	desktopEntry := `[Desktop Entry]
-Type=Application
-Name=Gemini OpenCLI Service
-Exec=/home/ouo/project_f/backend/golang-api/scripts/gemini-start.sh
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-`
-
-	if err := os.MkdirAll(autostartDir, 0755); err != nil {
-		results = append(results, map[string]string{"step": "mkdir_autostart", "status": "failed", "error": err.Error()})
-	} else if err := os.WriteFile(autostartFile, []byte(desktopEntry), 0644); err != nil {
-		results = append(results, map[string]string{"step": "write_autostart", "status": "failed", "error": err.Error()})
-	} else {
-		results = append(results, map[string]string{"step": "write_autostart", "status": "ok"})
-	}
-
-	// 4. Disable sleep
-	gsettingsCmds := []string{
-		"gsettings set org.gnome.desktop.session idle-delay 0",
-		"gsettings set org.gnome.desktop.lockdown disable-lock-screen true",
-	}
-
-	for _, g := range gsettingsCmds {
-		cmd := exec.Command("bash", "-c", g)
-		if err := cmd.Run(); err != nil {
-			results = append(results, map[string]string{"step": g, "status": "warning", "error": err.Error()})
-		} else {
-			results = append(results, map[string]string{"step": g, "status": "ok"})
-		}
-	}
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":     true,
-		"message":     "Setup complete. System will work during standby.",
-		"results":     results,
-		"next_steps":  []string{"1. Restart system or run: /home/ouo/project_f/backend/golang-api/scripts/gemini-start.sh", "2. Lock screen and test: curl -X POST http://localhost:8080/api/opencli/gemini/chat -d '{\"message\":\"test\"}'"},
-	})
+func extractLastAIResponse(fullText string) string {
+    lines := strings.Split(fullText, "\n")
+    for i := len(lines) - 1; i >= 0; i-- {
+        line := strings.TrimSpace(lines[i])
+        if line == "" {
+            continue
+        }
+        if strings.Contains(line, "Gemini 說了") || strings.Contains(line, "Gemini 说了") {
+            continue
+        }
+        return line
+    }
+    return strings.TrimSpace(fullText)
 }
 
-// ============== AI Query Handler (for frontend) ==============
-
-type AIQueryRequest struct {
-	Query string `json:"query"`
-}
-
-type AIQueryResponse struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message,omitempty"`
-	Reply   string      `json:"reply,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
-// AIQueryHandler handles AI chat requests from frontend
-func AIQueryHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	// Handle OPTIONS for CORS
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	// Only allow POST method
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(AIQueryResponse{
-			Success: false,
-			Message: "Method not allowed. Use POST",
-		})
-		return
-	}
-
-	// Parse request body
-	var req AIQueryRequest
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(AIQueryResponse{
-			Success: false,
-			Message: "Failed to read request body",
-		})
-		return
-	}
-	defer r.Body.Close()
-
-	if err := json.Unmarshal(body, &req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(AIQueryResponse{
-			Success: false,
-			Message: "Invalid JSON format",
-		})
-		return
-	}
-
-	// Validate query
-	if strings.TrimSpace(req.Query) == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(AIQueryResponse{
-			Success: false,
-			Message: "Query cannot be empty",
-		})
-		return
-	}
-
-	// Check if OpenCLI is ready
-	cmd := exec.Command("bash", "-c", "cd ~/OpenCLI && node dist/src/main.js doctor 2>&1")
-	output, err := cmd.Output()
-	if err != nil || !strings.Contains(string(output), "Everything looks good") {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(AIQueryResponse{
-			Success: false,
-			Message: "OpenCLI service not ready. Run: /home/ouo/project_f/backend/golang-api/scripts/gemini-start.sh",
-		})
-		return
-	}
-
-	// Call Gemini via the script
-	reply, _, err := callGeminiViaOpenCLI(req.Query)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(AIQueryResponse{
-			Success: false,
-			Message: fmt.Sprintf("Failed to get AI response: %v", err),
-		})
-		return
-	}
-
-	// Return response in the format expected by frontend
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(AIQueryResponse{
-		Success: true,
-		Message: "Query processed successfully",
-		Reply:   reply,
-		Data: map[string]interface{}{
-			"response": reply,
-		},
-	})
+func cleanGeminiResponse(response string) string {
+    lines := strings.Split(response, "\n")
+    var out []string
+    for _, line := range lines {
+        trimmed := strings.TrimSpace(line)
+        if trimmed == "" {
+            continue
+        }
+        if strings.Contains(trimmed, "Update available") || strings.Contains(trimmed, "Run: npm") || strings.Contains(trimmed, "你說了") || strings.Contains(trimmed, "You said") {
+            continue
+        }
+        out = append(out, trimmed)
+    }
+    return strings.TrimSpace(strings.Join(out, "\n"))
 }

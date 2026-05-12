@@ -265,10 +265,10 @@ func (fc *FeedController) AddFeedData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var feedReq struct {
-		UserID    int     `json:"user_id"`
+		UserID   int     `json:"user_id"`
 		FeedType string  `json:"feed_type"`
-		Quantity  float64 `json:"quantity"`
-		Unit      string  `json:"unit"`
+		Quantity float64 `json:"quantity"`
+		Unit     string  `json:"unit"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&feedReq); err != nil {
@@ -320,10 +320,10 @@ func (fc *FeedController) UpdateFeedData(w http.ResponseWriter, r *http.Request)
 	}
 
 	var feedReq struct {
-		ID        int     `json:"id"`
-		FeedType  string  `json:"feed_type"`
-		Quantity  float64 `json:"quantity"`
-		Unit      string  `json:"unit"`
+		ID       int     `json:"id"`
+		FeedType string  `json:"feed_type"`
+		Quantity float64 `json:"quantity"`
+		Unit     string  `json:"unit"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&feedReq); err != nil {
@@ -484,9 +484,9 @@ func (fc *FeedController) UpdateFeedDataByID(w http.ResponseWriter, r *http.Requ
 	id := vars["id"]
 
 	var feedReq struct {
-		FeedType  string  `json:"feed_type"`
-		Quantity  float64 `json:"quantity"`
-		Unit      string  `json:"unit"`
+		FeedType string  `json:"feed_type"`
+		Quantity float64 `json:"quantity"`
+		Unit     string  `json:"unit"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&feedReq); err != nil {

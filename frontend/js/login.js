@@ -69,8 +69,7 @@ createApp({
         },
 
         async loginAPI(credentials) {
-            // API endpoint - updated to use new auth endpoint
-            const apiUrl = 'http://192.168.50.75/api/auth/login'; // Updated to use auth endpoint
+            const apiUrl = '/api/auth/login';
 
             try {
                 const response = await axios.post(apiUrl, {

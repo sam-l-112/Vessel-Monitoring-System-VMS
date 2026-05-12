@@ -27,7 +27,7 @@ createApp({
             aiInput: '',
             aiLoading: false,
             // API base URL
-            apiBase: 'http://192.168.50.75'
+            apiBase: ''
         }
     },
     methods: {

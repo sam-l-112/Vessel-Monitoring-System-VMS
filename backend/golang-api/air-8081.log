@@ -1,0 +1,27 @@
+nohup: ignoring input
+[warning] build.bin is deprecated; set build.entrypoint instead
+
+  __    _   ___  
+ / /\  | | | |_) 
+/_/--\ |_| |_| \_ v1.65.1, built with Go go1.26.2
+
+watching .
+watching examples
+watching internal
+watching internal/platform
+watching internal/puth
+watching scripts
+watching src
+watching src/controllers
+watching src/database
+watching src/models
+watching src/router
+watching src/services
+!exclude tmp
+building...
+running...
+2026/05/12 22:56:11 Warning: .env file not found at /home/ouo/project_f/backend/golang-api/tmp/.env, trying current working directory
+2026/05/12 22:56:11 Database connection established successfully
+2026/05/12 22:56:13 Database tables created successfully
+2026/05/12 22:56:13 Default users created successfully
+2026/05/12 22:56:13 Server listening on port 8081

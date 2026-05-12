@@ -55,7 +55,7 @@ createApp({
                 todayFeed: 0,
                 waterQuality: {}
             },
-            apiBase: 'http://192.168.50.75:8080'
+            apiBase: ''
         };
     },
     methods: {

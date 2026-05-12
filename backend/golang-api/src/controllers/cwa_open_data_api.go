@@ -44,8 +44,8 @@ type CWAWeatherStationResponse struct {
 	Records struct {
 		Station []struct {
 			StationName string `json:"StationName"`
-			StationID  string `json:"StationId"`
-			ObsTime   struct {
+			StationID   string `json:"StationId"`
+			ObsTime     struct {
 				DateTime string `json:"DateTime"`
 			} `json:"ObsTime"`
 			GeoInfo struct {
@@ -54,17 +54,17 @@ type CWAWeatherStationResponse struct {
 					StationLongitude string `json:"StationLongitude"`
 				} `json:"Coordinates"`
 				StationAltitude string `json:"StationAltitude"`
-				CountyName    string `json:"CountyName"`
-				TownName      string `json:"TownName"`
+				CountyName      string `json:"CountyName"`
+				TownName        string `json:"TownName"`
 			} `json:"GeoInfo"`
 			WeatherElement struct {
 				Weather          string `json:"Weather"`
-				Precipitation   string `json:"Precipitation"`
-				WindDirection string `json:"WindDirection"`
-				WindSpeed     string `json:"WindSpeed"`
-				AirTemperature string `json:"AirTemperature"`
+				Precipitation    string `json:"Precipitation"`
+				WindDirection    string `json:"WindDirection"`
+				WindSpeed        string `json:"WindSpeed"`
+				AirTemperature   string `json:"AirTemperature"`
 				RelativeHumidity string `json:"RelativeHumidity"`
-				AirPressure   string `json:"AirPressure"`
+				AirPressure      string `json:"AirPressure"`
 			} `json:"WeatherElement"`
 		} `json:"Station"`
 	} `json:"records"`
@@ -180,7 +180,7 @@ func (c *CWAOpenDataController) GetCWAForecast(w http.ResponseWriter, r *http.Re
 	forecastType := r.URL.Query().Get("type")
 	baseURL := getCWABaseURL()
 	var apiURL string
-	
+
 	// 使用不同的 dataset ID
 	if area == "newtaipei" {
 		// 新北市一周預報
@@ -302,7 +302,7 @@ func getCWALocationName(locationName, area string) string {
 
 func parseCWAWeatherData(resp CWAWeatherResponse, stationID string, area string) []models.WeatherData {
 	locationName := getLocationDisplayName(area)
-	
+
 	var weatherData []models.WeatherData
 
 	if len(resp.Records.Locations) == 0 {
@@ -394,37 +394,37 @@ func GetCWAWeatherSummary() string {
 
 func parseCWAStationData(resp CWAWeatherStationResponse, stationID string, area string) []models.WeatherData {
 	var weatherData []models.WeatherData
-	
+
 	locationName := getLocationDisplayName(area)
-	
+
 	for _, station := range resp.Records.Station {
 		if station.StationID == stationID {
 			we := station.WeatherElement
-			
+
 			// 解析溫度
 			temp := 0.0
 			if we.AirTemperature != "" {
 				fmt.Sscanf(we.AirTemperature, "%f", &temp)
 			}
-			
+
 			// 解析濕度
 			humidity := 0.0
 			if we.RelativeHumidity != "" {
 				fmt.Sscanf(we.RelativeHumidity, "%f", &humidity)
 			}
-			
+
 			// 解析 pH (水質) - 使用預設值或從其他來源
 			ph := 7.0
-			
+
 			// 解析溶解氧
 			do := 5.5
-			
+
 			// 解析時間
 			recordedAt := time.Now()
 			if station.ObsTime.DateTime != "" {
 				recordedAt, _ = time.Parse("2006-01-02T15:04:05+08:00", station.ObsTime.DateTime)
 			}
-			
+
 			weatherData = append(weatherData, models.WeatherData{
 				ID:              0,
 				Temperature:     temp,
@@ -437,7 +437,7 @@ func parseCWAStationData(resp CWAWeatherStationResponse, stationID string, area 
 			break
 		}
 	}
-	
+
 	if len(weatherData) == 0 {
 		weatherData = []models.WeatherData{
 			{
@@ -451,6 +451,6 @@ func parseCWAStationData(resp CWAWeatherStationResponse, stationID string, area 
 			},
 		}
 	}
-	
+
 	return weatherData
 }

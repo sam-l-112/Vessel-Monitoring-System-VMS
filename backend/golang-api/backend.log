@@ -1,0 +1,16 @@
+nohup: ignoring input
+2026/05/12 15:47:21 Warning: .env file not found at /tmp/go-build1964327610/b001/exe/.env, trying current working directory
+2026/05/12 15:47:21 Database connection established successfully
+2026/05/12 15:47:23 Database tables created successfully
+2026/05/12 15:47:23 Default users created successfully
+🚀 VMS API Server starting on http://0.0.0.0:8080
+📋 Available endpoints:
+  POST /api/login - User login
+  GET  /api/health - Health check
+  GET  /api/users - Get users (requires auth)
+👤 Test credentials:
+  admin:admin123 (Administrator)
+  user:user123 (Regular User)
+🛑 Press Ctrl+C to stop the server
+2026/05/12 15:47:23 Server failed to start: listen tcp 0.0.0.0:8080: bind: address already in use
+exit status 1

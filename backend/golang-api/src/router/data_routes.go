@@ -56,7 +56,7 @@ func DataRoutes(router *mux.Router) {
 	router.HandleFunc("/api/feed/data/{id}", feedController.DeleteFeedData).Methods("DELETE")
 
 	// ═══════════════════════════════════════════════════════════════
-	// 🌤️ 天氣/環境數據 API (/api/weather/data)
+	// 🌤️ 天氣/環境數據 API (/api/weather/data)不
 	// ═══════════════════════════════════════════════════════════════
 
 	// GET /api/weather/data - 取得本地天氣數據
