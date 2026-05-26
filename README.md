@@ -189,4 +189,9 @@ For support and questions:
 - Check the documentation in the `docs/` directory
 - Review the troubleshooting guide for common problems
 
+===
+[Go API 開發環境自動化：Systemd + Air 整合指南](docs/Systemd%20+%20Air%20整合指南.md)
 
+[Go API 服務檢修與故障排除指南 (Troubleshooting)](docs/Go%20API%20服務檢修與故障排除指南%20(Troubleshooting).md)
+
+[docs](docs/README.md)

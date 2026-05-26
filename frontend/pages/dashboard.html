@@ -57,6 +57,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="#" @click="toggleOpenCLAW">
+                                <i class="fas fa-robot me-1"></i>OpenCLAW
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="#" @click="logout">
                                 <i class="fas fa-sign-out-alt me-1"></i>登出
                             </a>
@@ -94,6 +99,34 @@
             </div>
         </div>
 
+        <!-- OpenCLAW Chat Sidebar -->
+        <div class="openclaw-chat-sidebar" :class="{ show: openclawOpen }">
+            <div class="openclaw-chat-header">
+                <h5><i class="fas fa-robot me-2"></i>OpenCLAW 助手</h5>
+                <button class="btn-close btn-close-white" @click="toggleOpenCLAW"></button>
+            </div>
+            <div class="openclaw-chat-messages">
+                <div v-for="(msg, index) in openclawMessages" :key="index" :class="['openclaw-message', msg.role]">
+                    <div class="openclaw-message-content" v-html="msg.content.replace(/\n/g, '<br>')"></div>
+                </div>
+                <div v-if="openclawLoading" class="openclaw-message assistant">
+                    <div class="openclaw-message-content"><i class="fas fa-spinner fa-spin"></i> 思考中...</div>
+                </div>
+            </div>
+            <div class="openclaw-chat-input">
+                <input 
+                    type="text" 
+                    v-model="openclawInput" 
+                    @keyup.enter="sendOpenCLAWMessage"
+                    placeholder="輸入訊息給 OpenCLAW..."
+                    :disabled="openclawLoading"
+                >
+                <button @click="sendOpenCLAWMessage" :disabled="openclawLoading">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
         <div class="container-fluid">
             <div class="row">
                 <!-- Sidebar -->
@@ -125,11 +158,11 @@
                                     <i class="fas fa-chart-bar me-2"></i>數據分析
                                 </a>
                             </li>
-                            <li class="nav-item mb-2">
-                                <a class="nav-link" href="#" @click="showSection('alerts')" :class="{ active: currentSection === 'alerts' }">
-                                    <i class="fas fa-bell me-2"></i>警報通知
-                                </a>
-                            </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link" href="Alarm_system.html">
+                                <i class="fas fa-bell me-2"></i>警報通知
+                            </a>
+                        </li>
                             <li class="nav-item mb-2">
                                 <a class="nav-link" href="#" @click="showSection('settings')" :class="{ active: currentSection === 'settings' }">
                                     <i class="fas fa-cog me-2"></i>系統設定
@@ -152,7 +185,7 @@
                                     <p class="mb-3">
                                         歡迎使用 <strong>VMS 養殖監控系統</strong>，一個專業的水產養殖監控和管理平台。
                                     </p>
-                                    <h5 class="mb-2">🎯 系統核心功能：</h5>
+                                    <h5 class="mb-2">系統核心功能：</h5>
                                     <ul class="list-unstyled">
                                         <li class="mb-2">
                                             <i class="fas fa-check-circle text-success me-2"></i>
@@ -586,6 +619,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Application JavaScript -->
-    <script src="/js/Dashboard.js?v=20240504g"></script>
+    <script src="/js/Dashboard.js?v=20240505a"></script>
 </body>
 </html>

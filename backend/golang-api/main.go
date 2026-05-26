@@ -90,9 +90,10 @@ func main() {
 	r.HandleFunc("/api/opencli/gemini/status", controllers.GeminiStatusHandler).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/opencli/gemini/chat", controllers.GeminiHandler).Methods("POST", "OPTIONS")
 
-	routerpkg.LoginRoutes(r)
-	routerpkg.DataRoutes(r)
-	routerpkg.AIRoutes(r)
+    routerpkg.LoginRoutes(r)
+    routerpkg.DataRoutes(r)
+    routerpkg.AIRoutes(r)
+    routerpkg.WebhookRoutes(r)
 
 	r.PathPrefix("/docs/").Handler(http.StripPrefix("/docs/", http.FileServer(http.Dir("./docs/"))))
 

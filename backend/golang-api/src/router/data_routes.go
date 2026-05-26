@@ -68,4 +68,23 @@ func DataRoutes(router *mux.Router) {
 	// GET /api/weather/forecast - 取得天氣預報
 	router.HandleFunc("/api/weather/forecast", cwaController.GetCWAForecast).Methods("GET")
 
+	// ═══════════════════════════════════════════════════════════════
+	// 🚨 示警系統 API (/api/dataset)
+	// ═══════════════════════════════════════════════════════════════
+
+	// GET /api/dataset
+	// 功能：取得示警類型清單
+	// 參數：apikey (必填), format (必填, json/xml), limit (選填), offset (選填)
+	router.HandleFunc("/api/dataset", controllers.GetAlertTypes).Methods("GET", "OPTIONS")
+
+	// ═══════════════════════════════════════════════════════════════
+	// 📡 NCDR 示警訊息 API (/api/datastore)
+	// ═══════════════════════════════════════════════════════════════
+
+	// GET /api/datastore
+	// 功能：查詢 NCDR 國家災害防救中心即時示警訊息
+	// 參數：apikey (必填), format (必填, json/xml), capcode, govcode, countycode,
+	//       effectivetime, expirestime, limit, offset (選填)
+	router.HandleFunc("/api/datastore", controllers.GetAlertMessages).Methods("GET", "OPTIONS")
+
 }

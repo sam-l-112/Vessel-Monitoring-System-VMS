@@ -143,7 +143,17 @@ func CreateTables() error {
 		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 	)`
 
-	tables := []string{usersTable, fishDataTable, weatherDataTable, feedDataTable}
+	alertTypesTable := `
+	CREATE TABLE IF NOT EXISTS alert_types (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		name VARCHAR(100) NOT NULL,
+		description VARCHAR(500) NOT NULL,
+		severity ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+		is_active BOOLEAN DEFAULT TRUE,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`
+
+	tables := []string{usersTable, fishDataTable, weatherDataTable, feedDataTable, alertTypesTable}
 
 	for _, table := range tables {
 		if _, err := DB.Exec(table); err != nil {
@@ -185,6 +195,39 @@ func SeedData() error {
 		}
 
 		log.Println("Default users created successfully")
+	}
+
+	// Seed alert_types
+	var alertCount int
+	err = DB.QueryRow("SELECT COUNT(*) FROM alert_types").Scan(&alertCount)
+	if err != nil {
+		return fmt.Errorf("failed to check alert_types: %v", err)
+	}
+	if alertCount == 0 {
+		alertTypes := []struct {
+			name        string
+			description string
+			severity    string
+		}{
+			{"水溫異常", "水溫超出正常範圍 (20-30°C)", "high"},
+			{"pH值異常", "pH值超出正常範圍 (6.5-8.5)", "high"},
+			{"溶氧量過低", "水中溶氧量低於警戒值 (< 3 mg/L)", "critical"},
+			{"氨氮過高", "氨氮濃度超出安全範圍", "high"},
+			{"水位異常", "養殖池水位超出正常範圍", "medium"},
+			{"設備故障", "監控設備或供氧設備異常", "critical"},
+			{"餵食異常", "自動餵食器未正常運作", "medium"},
+			{"電力中斷", "養殖場電力供應中斷", "critical"},
+			{"氣象警報", "颱風、豪雨等極端天氣警報", "high"},
+			{"水質濁度異常", "水體濁度超出正常範圍", "low"},
+		}
+		for _, at := range alertTypes {
+			_, err := DB.Exec("INSERT INTO alert_types (name, description, severity) VALUES (?, ?, ?)",
+				at.name, at.description, at.severity)
+			if err != nil {
+				return fmt.Errorf("failed to seed alert_type '%s': %v", at.name, err)
+			}
+		}
+		log.Println("Alert types seeded successfully")
 	}
 
 	return nil

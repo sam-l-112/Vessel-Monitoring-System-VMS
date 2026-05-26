@@ -6,6 +6,15 @@ createApp({
             sidebarVisible: false,
             currentSection: 'dashboard',
             aiChatOpen: false,
+            openclawOpen: false,
+            openclawMessages: [
+                {
+                    role: 'assistant',
+                    content: '您好！我是 OpenCLAW 助手。我可以協助您進行養殖相關操作與查詢。'
+                }
+            ],
+            openclawInput: '',
+            openclawLoading: false,
             selectedArea: 'newtaipei',
             areas: [
                 { value: 'newtaipei', label: '新北市' },
@@ -78,6 +87,9 @@ createApp({
         toggleAIChat() {
             this.aiChatOpen = !this.aiChatOpen;
         },
+        toggleOpenCLAW() {
+            this.openclawOpen = !this.openclawOpen;
+        },
         async sendAIMessage() {
             if (!this.aiInput.trim() || this.aiLoading) return;
 
@@ -91,8 +103,8 @@ createApp({
 
             try {
                 // 使用 OpenCLI API (Gemini)
-                const response = await axios.post(`${this.apiBase}/api/ai/query`, {
-                    query: userMessage
+                const response = await axios.post(`${this.apiBase}/api/opencli/gemini/chat`, {
+                    message: userMessage
                 }, {
                     headers: { 'Content-Type': 'application/json' },
                     timeout: 90000
@@ -142,6 +154,54 @@ createApp({
             }
             
             this.aiLoading = false;
+        },
+        async sendOpenCLAWMessage() {
+            if (!this.openclawInput.trim() || this.openclawLoading) return;
+
+            const userMessage = this.openclawInput.trim();
+            this.openclawMessages.push({
+                role: 'user',
+                content: userMessage
+            });
+            this.openclawInput = '';
+            this.openclawLoading = true;
+
+            try {
+                const response = await axios.post(`${this.apiBase}/api/openclaw/chat`, {
+                    message: userMessage
+                }, {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 90000
+                });
+
+                if (response.data && response.data.success) {
+                    const replyText = response.data.reply || response.data.message || '收到回應';
+                    this.openclawMessages.push({
+                        role: 'assistant',
+                        content: replyText
+                    });
+                } else {
+                    const errorMsg = response.data?.message || response.data?.error || '未知錯誤';
+                    this.openclawMessages.push({
+                        role: 'assistant',
+                        content: '抱歉，發生錯誤：' + errorMsg
+                    });
+                }
+            } catch (error) {
+                console.error('OpenCLAW Error:', error);
+                let errorMsg = '抱歉，無法連線到 OpenCLAW 服務。';
+                if (error.response) {
+                    errorMsg = '伺服器錯誤：' + (error.response.data?.message || error.response.status);
+                } else if (error.code === 'ECONNREFUSED') {
+                    errorMsg = '無法連線到 API 伺服器。請確認伺服器正在運行。';
+                }
+                this.openclawMessages.push({
+                    role: 'assistant',
+                    content: errorMsg
+                });
+            }
+
+            this.openclawLoading = false;
         },
         logout() {
             if (confirm('確定要登出嗎？')) {
@@ -574,6 +634,7 @@ createApp({
         }
     },
     mounted() {
+        this.apiBase = window.location.origin;
         this.loadDashboardData();
     }
 }).mount('#app');

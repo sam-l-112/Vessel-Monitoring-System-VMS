@@ -88,3 +88,13 @@ Message    string      `json:"message"`
 Data       interface{} `json:"data"`
 Pagination Pagination  `json:"pagination"`
 }
+
+// AlertType represents an alert type in the alarm system
+type AlertType struct {
+ID          int    `json:"id" db:"id"`
+Name        string `json:"name" db:"name"`
+Description string `json:"description" db:"description"`
+Severity    string `json:"severity" db:"severity"`
+IsActive    bool   `json:"is_active" db:"is_active"`
+CreatedAt   string `json:"created_at,omitempty" db:"created_at"`
+}

@@ -40,7 +40,7 @@ func AIRoutes(router *mux.Router) {
 	// POST /api/openclaw/chat
 	// 功能：透過 OpenCLAW 與 AI 對話
 	// 用途：進階 AI 功能（需要認證）
-	// router.HandleFunc("/api/openclaw/chat", controllers.OpenCLAWChatHandler).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/openclaw/chat", controllers.OpenCLAWChatHandler).Methods("POST", "OPTIONS")
 
 	// ═══════════════════════════════════════════════════════════════
 	// 📊 每日報告 API (/api/daily-report)

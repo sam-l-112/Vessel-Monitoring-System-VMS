@@ -25,3 +25,70 @@ running...
 2026/05/12 22:56:13 Database tables created successfully
 2026/05/12 22:56:13 Default users created successfully
 2026/05/12 22:56:13 Server listening on port 8081
+src/models/database.go has changed
+building...
+# vms-api/src/services
+src/services/opencli_services.go:60:5: declared and not used: reply
+failed to build, error: exit status 1
+running...
+2026/05/13 00:10:03 Warning: .env file not found at /home/ouo/project_f/backend/golang-api/tmp/.env, trying current working directory
+2026/05/13 00:10:03 Database connection established successfully
+2026/05/13 00:10:04 Warning: Failed to create database tables: failed to create table: Error 1050 (42S01): Table 'users' already exists
+2026/05/13 00:10:05 Default users created successfully
+2026/05/13 00:10:05 Server listening on port 8081
+src/services/opencli_services.go has changed
+building...
+# vms-api/src/controllers
+src/controllers/opencli_controller.go:4:5: "context" imported and not used
+failed to build, error: exit status 1
+running...
+2026/05/13 00:12:43 Warning: .env file not found at /home/ouo/project_f/backend/golang-api/tmp/.env, trying current working directory
+2026/05/13 00:12:43 Database connection established successfully
+2026/05/13 00:12:44 Warning: Failed to create database tables: failed to create table: Error 1050 (42S01): Table 'users' already exists
+2026/05/13 00:12:44 Warning: Failed to seed data: failed to create admin user: Error 1062 (23000): Duplicate entry 'admin' for key 'username'
+2026/05/13 00:12:44 Server listening on port 8081
+src/services/opencli_services.go has changed
+building...
+# vms-api/src/controllers
+src/controllers/opencli_controller.go:4:5: "context" imported and not used
+failed to build, error: exit status 1
+running...
+2026/05/13 00:13:24 Warning: .env file not found at /home/ouo/project_f/backend/golang-api/tmp/.env, trying current working directory
+2026/05/13 00:13:24 Database connection established successfully
+2026/05/13 00:13:26 Warning: Failed to create database tables: failed to create table: Error 1050 (42S01): Table 'users' already exists
+2026/05/13 00:13:26 Default users created successfully
+2026/05/13 00:13:26 Server listening on port 8081
+src/controllers/opencli_controller.go has changed
+building...
+running...
+2026/05/13 00:13:49 Warning: .env file not found at /home/ouo/project_f/backend/golang-api/tmp/.env, trying current working directory
+2026/05/13 00:13:49 Database connection established successfully
+2026/05/13 00:13:52 Database tables created successfully
+2026/05/13 00:13:52 Server listening on port 8081
+src/controllers/opencli_controller.go has changed
+building...
+running...
+2026/05/13 00:14:15 Warning: .env file not found at /home/ouo/project_f/backend/golang-api/tmp/.env, trying current working directory
+2026/05/13 00:14:15 Database connection established successfully
+2026/05/13 00:14:17 Warning: Failed to create database tables: failed to create table: Error 1050 (42S01): Table 'users' already exists
+2026/05/13 00:14:17 Warning: Failed to seed data: failed to create admin user: Error 1062 (23000): Duplicate entry 'admin' for key 'username'
+2026/05/13 00:14:17 Server listening on port 8081
+src/models/database.go has changed
+building...
+src/models/database.go:1:1: expected 'package', found 'EOF'
+failed to build, error: exit status 1
+running...
+2026/05/13 00:21:41 Warning: .env file not found at /home/ouo/project_f/backend/golang-api/tmp/.env, trying current working directory
+2026/05/13 00:21:41 Database connection established successfully
+2026/05/13 00:21:43 Database tables created successfully
+2026/05/13 00:21:43 Server listening on port 8081
+src/models/database.go has changed
+building...
+running...
+2026/05/13 00:23:44 Warning: .env file not found at /home/ouo/project_f/backend/golang-api/tmp/.env, trying current working directory
+2026/05/13 00:23:44 Database connection established successfully
+2026/05/13 00:23:46 Warning: Failed to create database tables: failed to create table: Error 1050 (42S01): Table 'users' already exists
+2026/05/13 00:23:46 Default users created successfully
+2026/05/13 00:23:46 Server listening on port 8081
+cleaning...
+see you again~
