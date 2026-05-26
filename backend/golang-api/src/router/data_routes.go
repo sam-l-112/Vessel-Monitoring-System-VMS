@@ -87,4 +87,14 @@ func DataRoutes(router *mux.Router) {
 	//       effectivetime, expirestime, limit, offset (選填)
 	router.HandleFunc("/api/datastore", controllers.GetAlertMessages).Methods("GET", "OPTIONS")
 
+	// ═══════════════════════════════════════════════════════════════
+	// 🌪️ CWA 氣象署災防警報 API (/api/cwa/datastore)
+	// ═══════════════════════════════════════════════════════════════
+
+	// GET /api/cwa/datastore
+	// 功能：查詢 CWA 中央氣象署災防警報資料
+	// 參數：apikey (必填), dataset (必填: E-A0014-001海嘯, W-C0034-001颱風, W-C0033-005高溫, C-B0024-001觀測),
+	//       limit, offset, AreaName, StationName, CountyName, geocode, severity_level, expires (選填)
+	router.HandleFunc("/api/cwa/datastore", controllers.GetCWAAlerts).Methods("GET", "OPTIONS")
+
 }

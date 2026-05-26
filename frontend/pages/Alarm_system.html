@@ -327,27 +327,38 @@
                                                                         </div>
                                                                     </td>
                                                                 </tr>
-                                                            </template>
-                                                        </tbody>
-                                                    </table>
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-white py-3">
+                                            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                                <li class="nav-item"><a class="nav-link" :class="{ active: cwaTab === 'typhoon' }" href="#" @click.prevent="switchCWATab('typhoon')"><i class="fas fa-wind me-1"></i>颱風警報</a></li>
+                                                <li class="nav-item"><a class="nav-link" :class="{ active: cwaTab === 'hightemp' }" href="#" @click.prevent="switchCWATab('hightemp')"><i class="fas fa-temperature-high me-1"></i>高溫資訊</a></li>
+                                                <li class="nav-item"><a class="nav-link" :class="{ active: cwaTab === 'tsunami' }" href="#" @click.prevent="switchCWATab('tsunami')"><i class="fas fa-water me-1"></i>海嘯資訊</a></li>
+                                                <li class="nav-item"><a class="nav-link" :class="{ active: cwaTab === 'station' }" href="#" @click.prevent="switchCWATab('station')"><i class="fas fa-broadcast-tower me-1"></i>觀測資料</a></li>
+                                            </ul>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div v-if="cwaLoading" class="text-center py-4"><div class="spinner-border text-warning spinner-border-sm"></div><small class="ms-2 text-muted">載入 CWA 氣象警報中...</small></div>
+                                            <div v-else-if="cwaError" class="alert alert-warning m-3"><i class="fas fa-exclamation-triangle"></i> {{ cwaError }}</div>
+                                            <div v-else-if="cwaAlerts.length === 0" class="empty-state"><i class="fas fa-check-circle text-success"></i><h4>暫無警報</h4><p>目前無 {{ cwaTabLabel(cwaTab) }} 資料</p></div>
+                                            <div v-else>
+                                                <div v-for="(a, i) in cwaAlerts" :key="i" class="p-3 border-bottom">
+                                                    <div class="d-flex align-items-start gap-2 mb-2">
+                                                        <span v-if="a._severity" :class="'severity-badge ' + getSeverityClass(a._severity)">{{ getSeverityLabel(a._severity) }}</span>
+                                                        <span v-if="a.category" class="badge bg-secondary me-1">{{ a.category }}</span>
+                                                        <strong class="flex-grow-1">{{ a._headline || a.event || '-' }}</strong>
+                                                        <small v-if="a._effective" class="text-muted">{{ formatSentTime(a._effective) }}</small>
+                                                    </div>
+                                                    <p class="mb-1 small text-muted" style="white-space:pre-wrap">{{ a.description || a.ReportContent || a.Content || '' }}</p>
+                                                    <div class="d-flex flex-wrap gap-3">
+                                                        <small v-if="a._areaStr" class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>{{ a._areaStr }}</small>
+                                                        <small v-if="a.senderName" class="text-muted"><i class="fas fa-building me-1"></i>{{ a.senderName }}</small>
+                                                        <small v-if="a.web" class="text-primary"><a :href="a.web" target="_blank"><i class="fas fa-external-link-alt me-1"></i>參考連結</a></small>
+                                                    </div>
+                                                    <div v-if="a.instruction" class="alert alert-warning p-2 mt-2 mb-0 small"><i class="fas fa-info-circle me-1"></i>{{ a.instruction }}</div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div class="card-footer bg-white d-flex justify-content-between align-items-center" v-if="ncdrTotalPages > 1">
-                                            <small class="text-muted">第 {{ ncdrCurrentPage }} / {{ ncdrTotalPages }} 頁</small>
-                                            <nav>
-                                                <ul class="pagination pagination-sm mb-0">
-                                                    <li class="page-item" :class="{ disabled: ncdrCurrentPage <= 1 }">
-                                                        <button class="page-link" @click="ncdrCurrentPage--">&laquo;</button>
-                                                    </li>
-                                                    <li class="page-item" v-for="p in ncdrTotalPages" :key="p" :class="{ active: p === ncdrCurrentPage }">
-                                                        <button class="page-link" @click="ncdrCurrentPage = p">{{ p }}</button>
-                                                    </li>
-                                                    <li class="page-item" :class="{ disabled: ncdrCurrentPage >= ncdrTotalPages }">
-                                                        <button class="page-link" @click="ncdrCurrentPage++">&raquo;</button>
-                                                    </li>
-                                                </ul>
-                                            </nav>
                                         </div>
                                     </div>
                                 </div>

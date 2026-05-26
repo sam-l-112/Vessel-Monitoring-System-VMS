@@ -7,9 +7,9 @@
     <meta name="keywords" content="養殖,監控,魚類,數據分析">
     <meta name="author" content="VMS Team">
 
-    <!-- External CSS Files -->
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/Dashboard.css">
+    <!-- Original External CSS Files (restore for sidebar/chat functionality) -->
+    <link rel="stylesheet" href="/css/styles.css?v=20250101">
+    <link rel="stylesheet" href="/css/Dashboard.css?v=20250101">
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -17,15 +17,314 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false }
+        }
+    </script>
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Glassmorphism + Dashboard custom styles -->
+    <style>
+        /* ---- Glassmorphism Base ---- */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.30);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.10);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(31, 38, 135, 0.15);
+            border-color: rgba(255, 255, 255, 0.75);
+        }
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 60%);
+            pointer-events: none;
+        }
+
+        /* ---- Alert Pulse Animation ---- */
+        @keyframes alertPulse {
+            0%, 100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+            50%      { border-color: rgba(239, 68, 68, 1);   box-shadow: 0 0 18px 6px rgba(239, 68, 68, 0.35); }
+        }
+        .alert-pulse {
+            animation: alertPulse 1.2s ease-in-out infinite;
+            border-width: 2px !important;
+        }
+
+        /* ---- Skeleton Loading ---- */
+        .skeleton {
+            background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+            background-size: 200% 100%;
+            animation: skeletonShimmer 1.6s ease-in-out infinite;
+            border-radius: 12px;
+        }
+        @keyframes skeletonShimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ---- Chart canvas sizing inside glass cards ---- */
+        .chart-wrap {
+            position: relative;
+            width: 100%;
+            height: 160px;
+            margin: 0 auto;
+        }
+        .chart-wrap canvas {
+            max-height: 160px;
+        }
+
+        /* ---- Body gradient background ---- */
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 25%, #f0f9ff 50%, #e0f2fe 75%, #bae6fd 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        /* ---- Main content padding ---- */
+        .main-content {
+            min-height: 100vh;
+        }
+
+        /* ---- Weather placeholder grid ---- */
+        .weather-placeholder-card {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 1rem;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        /* ---- Test mode banner ---- */
+        .test-mode-banner {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+            color: #1e293b;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ---- Metric value text ---- */
+        .metric-value-lg {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1;
+        }
+        .metric-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        /* ---- Responsive: glass-card adjustments ---- */
+        @media (max-width: 767px) {
+            .glass-card { border-radius: 14px; }
+            .metric-value-lg { font-size: 1.5rem; }
+        }
+
+        /* ---- OpenCLAW Chat Sidebar (explicit override to guarantee functionality) ---- */
+        .openclaw-chat-sidebar {
+            position: fixed !important;
+            top: 0 !important;
+            right: -400px !important;
+            width: 380px !important;
+            height: 100vh !important;
+            background: #1e3a5f !important;
+            z-index: 9998 !important;
+            transition: right 0.3s ease !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.3) !important;
+        }
+        .openclaw-chat-sidebar.show {
+            right: 0 !important;
+        }
+        .openclaw-chat-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            padding: 1rem !important;
+            background: #15294a !important;
+            border-bottom: 1px solid #2d5a8e !important;
+        }
+        .openclaw-chat-header h5 {
+            margin: 0 !important;
+            color: #fff !important;
+        }
+        .openclaw-chat-messages {
+            flex: 1 !important;
+            overflow-y: auto !important;
+            padding: 1rem !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+        }
+        .openclaw-message { max-width: 90% !important; }
+        .openclaw-message.user { align-self: flex-end !important; }
+        .openclaw-message.assistant { align-self: flex-start !important; }
+        .openclaw-message-content {
+            padding: 0.75rem 1rem !important;
+            border-radius: 12px !important;
+            font-size: 0.9rem !important;
+            word-break: break-word !important;
+        }
+        .openclaw-message.user .openclaw-message-content {
+            background: #2d5a8e !important;
+            color: #fff !important;
+        }
+        .openclaw-message.assistant .openclaw-message-content {
+            background: #17a2b8 !important;
+            color: #fff !important;
+        }
+        .openclaw-chat-input {
+            display: flex !important;
+            padding: 1rem !important;
+            background: #15294a !important;
+            border-top: 1px solid #2d5a8e !important;
+            gap: 0.5rem !important;
+        }
+        .openclaw-chat-input input {
+            flex: 1 !important;
+            padding: 0.75rem !important;
+            border: none !important;
+            border-radius: 8px !important;
+            background: #2d5a8e !important;
+            color: #fff !important;
+        }
+        .openclaw-chat-input input::placeholder { color: #aaa !important; }
+        .openclaw-chat-input button {
+            padding: 0.75rem 1rem !important;
+            border: none !important;
+            border-radius: 8px !important;
+            background: #17a2b8 !important;
+            color: #fff !important;
+            cursor: pointer !important;
+        }
+        .openclaw-chat-input button:disabled {
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
+        }
+
+        /* ---- AI Chat Sidebar (explicit override) ---- */
+        .ai-chat-sidebar {
+            position: fixed !important;
+            top: 0 !important;
+            right: -400px !important;
+            width: 380px !important;
+            height: 100vh !important;
+            background: #1a1a2e !important;
+            z-index: 9999 !important;
+            transition: right 0.3s ease !important;
+            display: flex !important;
+            flex-direction: column !important;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.3) !important;
+        }
+        .ai-chat-sidebar.show {
+            right: 0 !important;
+        }
+        .ai-chat-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            padding: 1rem !important;
+            background: #16213e !important;
+            border-bottom: 1px solid #0f3460 !important;
+        }
+        .ai-chat-header h5 {
+            margin: 0 !important;
+            color: #fff !important;
+        }
+        .ai-chat-messages {
+            flex: 1 !important;
+            overflow-y: auto !important;
+            padding: 1rem !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+        }
+        .ai-message { max-width: 90% !important; }
+        .ai-message.user { align-self: flex-end !important; }
+        .ai-message.assistant { align-self: flex-start !important; }
+        .ai-message-content {
+            padding: 0.75rem 1rem !important;
+            border-radius: 12px !important;
+            font-size: 0.9rem !important;
+            word-break: break-word !important;
+        }
+        .ai-message.user .ai-message-content {
+            background: #0f3460 !important;
+            color: #fff !important;
+        }
+        .ai-message.assistant .ai-message-content {
+            background: #e94560 !important;
+            color: #fff !important;
+        }
+        .ai-chat-input {
+            display: flex !important;
+            padding: 1rem !important;
+            background: #16213e !important;
+            border-top: 1px solid #0f3460 !important;
+            gap: 0.5rem !important;
+        }
+        .ai-chat-input input {
+            flex: 1 !important;
+            padding: 0.75rem !important;
+            border: none !important;
+            border-radius: 8px !important;
+            background: #0f3460 !important;
+            color: #fff !important;
+        }
+        .ai-chat-input input::placeholder { color: #888 !important; }
+        .ai-chat-input button {
+            padding: 0.75rem 1rem !important;
+            border: none !important;
+            border-radius: 8px !important;
+            background: #e94560 !important;
+            color: #fff !important;
+            cursor: pointer !important;
+        }
+        .ai-chat-input button:disabled {
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
+        }
+    </style>
 
     <title>Vessel Monitoring System - 養殖監控系統</title>
 </head>
 <body>
-    <div id="app" class="fade-in">
+    <div id="app">
         <!-- Navigation -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm" style="background: linear-gradient(135deg, #1e40af, #3b82f6) !important;">
             <div class="container-fluid">
                 <a class="navbar-brand d-flex align-items-center" href="#">
                     <i class="fas fa-fish me-2"></i>
@@ -86,16 +385,8 @@
                 </div>
             </div>
             <div class="ai-chat-input">
-                <input 
-                    type="text" 
-                    v-model="aiInput" 
-                    @keyup.enter="sendAIMessage"
-                    placeholder="問我任何問題..."
-                    :disabled="aiLoading"
-                >
-                <button @click="sendAIMessage" :disabled="aiLoading">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+                <input type="text" v-model="aiInput" @keyup.enter="sendAIMessage" placeholder="問我任何問題..." :disabled="aiLoading">
+                <button @click="sendAIMessage" :disabled="aiLoading"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
 
@@ -114,16 +405,8 @@
                 </div>
             </div>
             <div class="openclaw-chat-input">
-                <input 
-                    type="text" 
-                    v-model="openclawInput" 
-                    @keyup.enter="sendOpenCLAWMessage"
-                    placeholder="輸入訊息給 OpenCLAW..."
-                    :disabled="openclawLoading"
-                >
-                <button @click="sendOpenCLAWMessage" :disabled="openclawLoading">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+                <input type="text" v-model="openclawInput" @keyup.enter="sendOpenCLAWMessage" placeholder="輸入訊息給 OpenCLAW..." :disabled="openclawLoading">
+                <button @click="sendOpenCLAWMessage" :disabled="openclawLoading"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
 
@@ -158,11 +441,11 @@
                                     <i class="fas fa-chart-bar me-2"></i>數據分析
                                 </a>
                             </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link" href="Alarm_system.html">
-                                <i class="fas fa-bell me-2"></i>警報通知
-                            </a>
-                        </li>
+                            <li class="nav-item mb-2">
+                                <a class="nav-link" href="Alarm_system.html">
+                                    <i class="fas fa-bell me-2"></i>警報通知
+                                </a>
+                            </li>
                             <li class="nav-item mb-2">
                                 <a class="nav-link" href="#" @click="showSection('settings')" :class="{ active: currentSection === 'settings' }">
                                     <i class="fas fa-cog me-2"></i>系統設定
@@ -174,175 +457,185 @@
 
                 <!-- Main Content -->
                 <main class="col-md-10 ms-sm-auto px-md-4 main-content">
-                    <!-- System Overview Section -->
-                    <div v-if="currentSection === 'dashboard'" class="pt-3">
-                        <div class="alert alert-info mb-4" role="alert">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <h4 class="alert-heading">
-                                        <i class="fas fa-info-circle me-2"></i>系統介紹
-                                    </h4>
-                                    <p class="mb-3">
-                                        歡迎使用 <strong>VMS 養殖監控系統</strong>，一個專業的水產養殖監控和管理平台。
-                                    </p>
-                                    <h5 class="mb-2">系統核心功能：</h5>
-                                    <ul class="list-unstyled">
-                                        <li class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-2"></i>
-                                            <strong>即時數據監控</strong> - 實時追蹤水溫、pH值、溶解氧等水質參數
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-2"></i>
-                                            <strong>魚類健康管理</strong> - 記錄和監測養殖魚類的量、重量和健康狀況
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-2"></i>
-                                            <strong>飼料管理系統</strong> - 追蹤飼料使用量和最佳化投飼計畫
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-2"></i>
-                                            <strong>智能預警通知</strong> - 當水質異常或養殖風險時自動告警
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-2"></i>
-                                            <strong>數據分析報告</strong> - 生成詳細的養殖數據分析和趨勢預測
-                                        </li>
-                                    </ul>
+
+                    <!-- ============ DASHBOARD SECTION ============ -->
+                    <div v-if="currentSection === 'dashboard'" class="pt-3 pb-4">
+
+                        <!-- H1 Title: 關鍵性能指標總覽 (flexbox centered) -->
+                        <div class="flex justify-center items-center my-6">
+                            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight" style="margin:0;">
+                                <i class="fas fa-chart-pie me-2 text-blue-600"></i>關鍵性能指標總覽
+                            </h1>
+                        </div>
+
+                        <!-- Toolbar: Refresh + Test Toggle -->
+                        <div class="flex flex-wrap items-center justify-between mb-5 gap-3">
+                            <div class="flex items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" @click="refreshData">
+                                    <i class="fas fa-sync-alt me-1"></i>刷新數據
+                                </button>
+                                <button type="button"
+                                    class="btn btn-sm"
+                                    :class="testMode ? 'btn-warning' : 'btn-outline-warning'"
+                                    @click="toggleTestMode">
+                                    <i class="fas fa-flask me-1"></i>
+                                    {{ testMode ? '退出測試模式' : '測試模式' }}
+                                </button>
+                            </div>
+                            <div v-if="testMode" class="test-mode-banner">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                測試模式已啟用 — 顯示模擬數據
+                            </div>
+                        </div>
+
+                        <!-- KPI Cards Grid: 4 cols desktop, 2 cols tablet, 1 col mobile -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+
+                            <!-- Card 1: 健康指數 (Health Index Doughnut) -->
+                            <div :id="'card-health'"
+                                class="glass-card p-5 flex flex-col items-center"
+                                :class="alertCards.health ? 'alert-pulse border-red-500' : 'border-white/50'">
+                                <i class="fas fa-heartbeat text-3xl mb-2" :class="alertCards.health ? 'text-red-500' : 'text-emerald-500'"></i>
+                                <span class="metric-label uppercase tracking-wider">健康指數</span>
+                                <div class="chart-wrap my-2">
+                                    <canvas id="chartHealth"></canvas>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="bg-white p-3 rounded border-1">
-                                        <h5 class="mb-3">
-                                            <i class="fas fa-rocket me-2"></i>快速開始
-                                        </h5>
-                                        <p class="small text-muted">1️⃣ 查看儀表板了解概況</p>
-                                        <p class="small text-muted">2️⃣ 在魚類數據中管理養殖池塘</p>
-                                        <p class="small text-muted">3️⃣ 監控天氣和水質資訊</p>
-                                        <p class="small text-muted">4️⃣ 查看數據分析和警報</p>
-                                        <hr>
-                                        <p class="small"><strong>需要幫助？</strong><br>查看系統設定中的使用指南</p>
+                                <span class="metric-value-lg">{{ dashboardMetrics.healthIndex }}<span class="text-base font-normal text-slate-500">%</span></span>
+                                <span v-if="alertCards.health" class="text-xs text-red-500 font-semibold mt-1">
+                                    <i class="fas fa-exclamation-circle"></i> 低於安全閾值
+                                </span>
+                            </div>
+
+                            <!-- Card 2: 溶解氧 (Dissolved Oxygen Doughnut) -->
+                            <div :id="'card-do'"
+                                class="glass-card p-5 flex flex-col items-center"
+                                :class="alertCards.do ? 'alert-pulse border-red-500' : 'border-white/50'">
+                                <i class="fas fa-water text-3xl mb-2" :class="alertCards.do ? 'text-red-500' : 'text-sky-500'"></i>
+                                <span class="metric-label uppercase tracking-wider">溶解氧</span>
+                                <div class="chart-wrap my-2">
+                                    <canvas id="chartDO"></canvas>
+                                </div>
+                                <span class="metric-value-lg">{{ dashboardMetrics.dissolvedOxygen }}<span class="text-base font-normal text-slate-500"> mg/L</span></span>
+                                <span v-if="alertCards.do" class="text-xs text-red-500 font-semibold mt-1">
+                                    <i class="fas fa-exclamation-circle"></i> 低於 5.0 mg/L
+                                </span>
+                            </div>
+
+                            <!-- Card 3: pH值 (pH Doughnut) -->
+                            <div :id="'card-ph'"
+                                class="glass-card p-5 flex flex-col items-center"
+                                :class="alertCards.ph ? 'alert-pulse border-red-500' : 'border-white/50'">
+                                <i class="fas fa-flask text-3xl mb-2" :class="alertCards.ph ? 'text-red-500' : 'text-violet-500'"></i>
+                                <span class="metric-label uppercase tracking-wider">pH 酸鹼值</span>
+                                <div class="chart-wrap my-2">
+                                    <canvas id="chartPH"></canvas>
+                                </div>
+                                <span class="metric-value-lg">{{ dashboardMetrics.phLevel }}</span>
+                                <span v-if="alertCards.ph" class="text-xs text-red-500 font-semibold mt-1">
+                                    <i class="fas fa-exclamation-circle"></i> pH 異常
+                                </span>
+                            </div>
+
+                            <!-- Card 4: 水溫 (Water Temperature) -->
+                            <div :id="'card-temp'"
+                                class="glass-card p-5 flex flex-col items-center"
+                                :class="alertCards.temp ? 'alert-pulse border-red-500' : 'border-white/50'">
+                                <i class="fas fa-temperature-high text-3xl mb-2" :class="alertCards.temp ? 'text-red-500' : 'text-amber-500'"></i>
+                                <span class="metric-label uppercase tracking-wider">水溫</span>
+                                <div class="chart-wrap my-2">
+                                    <canvas id="chartTemp"></canvas>
+                                </div>
+                                <span class="metric-value-lg">{{ dashboardMetrics.waterTemp }}<span class="text-base font-normal text-slate-500"> °C</span></span>
+                                <span v-if="alertCards.temp" class="text-xs text-red-500 font-semibold mt-1">
+                                    <i class="fas fa-exclamation-circle"></i> 水溫異常
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Weather Placeholder Section -->
+                        <div class="mt-6 mb-4">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-cloud-sun text-xl text-sky-600"></i>
+                                <h2 class="text-lg font-semibold text-slate-700 m-0">即時天氣資訊</h2>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <!-- weather-icon -->
+                                <div id="weather-icon" class="weather-placeholder-card">
+                                    <template v-if="weatherSkeleton">
+                                        <div class="skeleton w-12 h-12 rounded-full mb-2"></div>
+                                        <div class="skeleton w-16 h-3 rounded mb-1"></div>
+                                    </template>
+                                    <template v-else>
+                                        <i class="fas" :class="weatherDisplay.icon" style="font-size:2.5rem;"></i>
+                                        <span class="text-sm font-medium mt-1">{{ weatherDisplay.iconLabel }}</span>
+                                    </template>
+                                </div>
+                                <!-- rain-data -->
+                                <div id="rain-data" class="weather-placeholder-card">
+                                    <template v-if="weatherSkeleton">
+                                        <div class="skeleton w-12 h-12 rounded-full mb-2"></div>
+                                        <div class="skeleton w-16 h-3 rounded mb-1"></div>
+                                        <div class="skeleton w-10 h-5 rounded mt-1"></div>
+                                    </template>
+                                    <template v-else>
+                                        <i class="fas fa-cloud-rain text-2xl text-blue-500 mb-1"></i>
+                                        <span class="text-xs text-slate-500">降雨機率</span>
+                                        <span class="text-xl font-bold text-slate-800">{{ weatherDisplay.rain }}%</span>
+                                    </template>
+                                </div>
+                                <!-- wind-data -->
+                                <div id="wind-data" class="weather-placeholder-card">
+                                    <template v-if="weatherSkeleton">
+                                        <div class="skeleton w-12 h-12 rounded-full mb-2"></div>
+                                        <div class="skeleton w-16 h-3 rounded mb-1"></div>
+                                        <div class="skeleton w-10 h-5 rounded mt-1"></div>
+                                    </template>
+                                    <template v-else>
+                                        <i class="fas fa-wind text-2xl text-teal-500 mb-1"></i>
+                                        <span class="text-xs text-slate-500">風速</span>
+                                        <span class="text-xl font-bold text-slate-800">{{ weatherDisplay.wind }} km/h</span>
+                                    </template>
+                                </div>
+                                <!-- pressure-data -->
+                                <div id="pressure-data" class="weather-placeholder-card">
+                                    <template v-if="weatherSkeleton">
+                                        <div class="skeleton w-12 h-12 rounded-full mb-2"></div>
+                                        <div class="skeleton w-16 h-3 rounded mb-1"></div>
+                                        <div class="skeleton w-10 h-5 rounded mt-1"></div>
+                                    </template>
+                                    <template v-else>
+                                        <i class="fas fa-compress-arrows-alt text-2xl text-indigo-500 mb-1"></i>
+                                        <span class="text-xs text-slate-500">氣壓</span>
+                                        <span class="text-xl font-bold text-slate-800">{{ weatherDisplay.pressure }} hPa</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity (glass styled) -->
+                        <div class="glass-card p-4 mt-4" style="border-radius:16px;">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-history text-lg text-slate-500"></i>
+                                <h3 class="text-base font-semibold text-slate-700 m-0">最近活動</h3>
+                            </div>
+                            <div v-if="recentActivities.length > 0" class="space-y-2">
+                                <div v-for="activity in recentActivities" :key="activity.id"
+                                    class="flex justify-between items-start py-2 border-b border-white/30 last:border-0">
+                                    <div>
+                                        <span class="font-medium text-sm text-slate-700">{{ activity.title }}</span>
+                                        <p class="text-xs text-slate-500 m-0">{{ activity.description }}</p>
                                     </div>
+                                    <small class="text-xs text-slate-400 whitespace-nowrap ml-2">{{ activity.time }}</small>
                                 </div>
+                            </div>
+                            <div v-else class="text-center text-slate-400 py-4">
+                                <i class="fas fa-inbox text-2xl mb-1"></i>
+                                <p class="text-sm">暫無活動記錄</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Dashboard Section -->
-                    <div v-if="currentSection === 'dashboard'" class="pt-3">
-                        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                            <h1 class="h2">儀表板總覽</h1>
-                            <div class="btn-toolbar mb-2 mb-md-0">
-                                <div class="btn-group me-2">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="refreshData">
-                                        <i class="fas fa-sync-alt me-1"></i>刷新
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Metrics Cards -->
-                        <div class="row mb-4">
-                            <div class="col-md-3 mb-3">
-                                <div class="card metric-card">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h5 class="card-title">總魚數量</h5>
-                                                <h2 class="mb-0">{{ metrics.totalFish }}</h2>
-                                            </div>
-                                            <i class="fas fa-fish fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="card metric-card success">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h5 class="card-title">健康指數</h5>
-                                                <h2 class="mb-0">{{ metrics.healthIndex }}%</h2>
-                                            </div>
-                                            <i class="fas fa-heartbeat fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="card metric-card warning">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h5 class="card-title">水溫</h5>
-                                                <h2 class="mb-0">{{ metrics.waterTemp }}°C</h2>
-                                            </div>
-                                            <i class="fas fa-thermometer-half fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="card metric-card danger">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between">
-                                            <div>
-                                                <h5 class="card-title">警報數量</h5>
-                                                <h2 class="mb-0">{{ metrics.alerts }}</h2>
-                                            </div>
-                                            <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Charts Row -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="card-title mb-0">魚類生長趨勢</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="chart-container">
-                                            <canvas id="growthChart"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="card-title mb-0">水質參數</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="chart-container">
-                                            <canvas id="waterQualityChart"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Recent Activity -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">最近活動</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="list-group list-group-flush">
-                                    <div v-for="activity in recentActivities" :key="activity.id" class="list-group-item px-0">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1">{{ activity.title }}</h6>
-                                            <small>{{ activity.time }}</small>
-                                        </div>
-                                        <p class="mb-1">{{ activity.description }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Fish Data Section -->
+                    <!-- ============ FISH DATA SECTION ============ -->
                     <div v-if="currentSection === 'fish-data'" class="pt-3">
                         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                             <h1 class="h2">魚類數據管理</h1>
@@ -358,17 +651,12 @@
                             </div>
                         </div>
 
-                        <div v-if="loading" class="loading-overlay">
-                            <div class="loading-spinner"></div>
-                        </div>
-
-                        <div v-if="error" class="error-message">
-                            <i class="fas fa-exclamation-triangle"></i>{{ error }}
-                        </div>
+                        <div v-if="loading" class="loading-overlay"><div class="loading-spinner"></div></div>
+                        <div v-if="error" class="error-message"><i class="fas fa-exclamation-triangle"></i>{{ error }}</div>
 
                         <div v-if="fishData.length > 0" class="data-section">
                             <h3><i class="fas fa-fish me-2"></i>魚類養殖數據</h3>
-                            <div class="data-grid">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div v-for="fish in fishData" :key="fish.id" class="data-card">
                                     <div class="d-flex justify-content-between">
                                         <h4>{{ fish.fish_type }}</h4>
@@ -376,18 +664,15 @@
                                             <i class="fas fa-edit"></i>
                                         </button>
                                     </div>
-                                    <p><strong>數量:</strong> <span class="value">{{ fish.quantity }}</span> 條</p>
+                                    <p><strong>數量:</strong> <span style="font-size:1.3rem;font-weight:700;">{{ fish.quantity }}</span> 條</p>
                                     <p><strong>平均體重:</strong> {{ fish.weight || 'N/A' }} kg</p>
                                     <p><strong>健康狀況:</strong>
-                                        <span :class="getHealthClass(fish.health_status)">
-                                            {{ getHealthText(fish.health_status) }}
-                                        </span>
+                                        <span :class="getHealthClass(fish.health_status)">{{ getHealthText(fish.health_status) }}</span>
                                     </p>
                                     <p><strong>更新時間:</strong> {{ formatDate(fish.updated_at) }}</p>
                                 </div>
                             </div>
                         </div>
-
                         <div v-else-if="!loading" class="empty-state">
                             <i class="fas fa-fish"></i>
                             <h4>尚未有魚類數據</h4>
@@ -395,7 +680,7 @@
                         </div>
                     </div>
 
-                    <!-- Add Fish Modal -->
+                    <!-- Fish Modal -->
                     <div v-if="showFishModal" class="modal-overlay" @click.self="closeFishModal">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -419,7 +704,7 @@
                                     <div class="mb-3">
                                         <label class="form-label">健康狀況</label>
                                         <select class="form-select" v-model="fishForm.health_status">
-                                            <option value="excellent">优良</option>
+                                            <option value="excellent">優良</option>
                                             <option value="good">良好</option>
                                             <option value="fair">一般</option>
                                             <option value="poor">需改善</option>
@@ -436,7 +721,7 @@
                         </div>
                     </div>
 
-                    <!-- Add Feed Modal -->
+                    <!-- Feed Modal -->
                     <div v-if="showFeedModal" class="modal-overlay" @click.self="closeFeedModal">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -472,7 +757,7 @@
                         </div>
                     </div>
 
-                    <!-- Weather Data Section -->
+                    <!-- ============ WEATHER DATA SECTION ============ -->
                     <div v-if="currentSection === 'weather'" class="pt-3">
                         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                             <h1 class="h2">天氣資訊監控</h1>
@@ -488,21 +773,15 @@
                             </div>
                         </div>
 
-                        <div v-if="loading" class="loading-overlay">
-                            <div class="loading-spinner"></div>
-                        </div>
+                        <div v-if="loading" class="loading-overlay"><div class="loading-spinner"></div></div>
+                        <div v-if="error" class="error-message"><i class="fas fa-exclamation-triangle"></i>{{ error }}</div>
 
-                        <div v-if="error" class="error-message">
-                            <i class="fas fa-exclamation-triangle"></i>{{ error }}
-                        </div>
-
-                        <!-- Current Weather -->
                         <div v-if="weatherData.length > 0" class="data-section">
                             <h3><i class="fas fa-cloud-sun me-2"></i>即時觀測資料 - {{ selectedArea === 'penghu' ? '澎湖地區' : '新北地區' }}</h3>
-                            <div class="data-grid">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div v-for="weather in weatherData.slice(0, 12)" :key="weather.id" class="data-card">
                                     <h4><i class="fas fa-map-marker-alt me-1"></i>{{ weather.location || '未命名位置' }}</h4>
-                                    <p><strong>溫度:</strong> <span class="value">{{ weather.temperature }}°C</span></p>
+                                    <p><strong>溫度:</strong> <span style="font-size:1.3rem;font-weight:700;">{{ weather.temperature }}°C</span></p>
                                     <p><strong>濕度:</strong> {{ weather.humidity }}%</p>
                                     <p><strong>pH值:</strong> {{ weather.ph_level }}</p>
                                     <p><strong>溶解氧:</strong> {{ weather.dissolved_oxygen }} mg/L</p>
@@ -511,20 +790,12 @@
                             </div>
                         </div>
 
-                        <!-- Weekly Forecast -->
                         <div v-if="forecastData.length > 0" class="data-section mt-4">
                             <h3><i class="fas fa-calendar-week me-2"></i>一週天氣預報 - {{ selectedArea === 'penghu' ? '澎湖地區' : '新北地區' }}</h3>
                             <div class="table-responsive">
                                 <table class="table table-bordered table-striped table-hover">
                                     <thead class="table-dark">
-                                        <tr>
-                                            <th>時間</th>
-                                            <th>天氣</th>
-                                            <th>溫度</th>
-                                            <th>最高溫</th>
-                                            <th>最低溫</th>
-                                            <th>降雨機率</th>
-                                        </tr>
+                                        <tr><th>時間</th><th>天氣</th><th>溫度</th><th>最高溫</th><th>最低溫</th><th>降雨機率</th></tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="(forecast, index) in forecastData" :key="index">
@@ -547,7 +818,7 @@
                         </div>
                     </div>
 
-                    <!-- Feed Data Section -->
+                    <!-- ============ FEED DATA SECTION ============ -->
                     <div v-if="currentSection === 'feed'" class="pt-3">
                         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                             <h1 class="h2">飼料管理系統</h1>
@@ -563,26 +834,15 @@
                             </div>
                         </div>
 
-                        <div v-if="loading" class="loading-overlay">
-                            <div class="loading-spinner"></div>
-                        </div>
-
-                        <div v-if="error" class="error-message">
-                            <i class="fas fa-exclamation-triangle"></i>{{ error }}
-                        </div>
+                        <div v-if="loading" class="loading-overlay"><div class="loading-spinner"></div></div>
+                        <div v-if="error" class="error-message"><i class="fas fa-exclamation-triangle"></i>{{ error }}</div>
 
                         <div v-if="feedData.length > 0" class="data-section">
                             <h3><i class="fas fa-seedling me-2"></i>飼料使用記錄</h3>
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
-                                        <tr>
-                                            <th>飼料類型</th>
-                                            <th>數量</th>
-                                            <th>單位</th>
-                                            <th>餵食時間</th>
-                                            <th>用戶</th>
-                                        </tr>
+                                        <tr><th>飼料類型</th><th>數量</th><th>單位</th><th>餵食時間</th><th>用戶</th><th></th></tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="feed in feedData" :key="feed.id">
@@ -608,6 +868,7 @@
                             <p>系統尚未記錄任何飼料使用數據。</p>
                         </div>
                     </div>
+
                 </main>
             </div>
         </div>
@@ -618,7 +879,648 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Application JavaScript -->
-    <script src="/js/Dashboard.js?v=20240505a"></script>
+    <!-- ============ INLINE VUE APPLICATION ============ -->
+    <script>
+    /* ================================================================
+       MOCK DATA — 測試用 JSON 物件 (正常狀態 vs 極端氣候風險狀態)
+       ================================================================ */
+    const MOCK_DATA = {
+        normal: {
+            healthIndex: 87,
+            dissolvedOxygen: 7.2,
+            phLevel: 7.6,
+            waterTemp: 25.8,
+            weather: { icon: 'fa-sun', iconLabel: '晴朗', rain: 15, wind: 12, pressure: 1013 }
+        },
+        alert: {
+            healthIndex: 38,
+            dissolvedOxygen: 3.1,
+            phLevel: 4.5,
+            waterTemp: 33.2,
+            weather: { icon: 'fa-poo-storm', iconLabel: '暴風雨', rain: 95, wind: 52, pressure: 982 }
+        }
+    };
+
+    /* ================================================================
+       THRESHOLD CONFIGURATION
+       ================================================================ */
+    const THRESHOLDS = {
+        health:   { min: 50,  label: '健康指數', unit: '%' },
+        do:       { min: 5.0, label: '溶解氧',   unit: 'mg/L' },
+        ph:       { min: 6.0, max: 9.0, label: 'pH值', unit: '' },
+        temp:     { min: 15,  max: 32, label: '水溫',  unit: '°C' }
+    };
+
+    /* ================================================================
+       Vue 3 Application
+       ================================================================ */
+    const { createApp } = Vue;
+
+    createApp({
+        data() {
+            return {
+                /* --- original state --- */
+                sidebarVisible: false,
+                currentSection: 'dashboard',
+                aiChatOpen: false,
+                openclawOpen: false,
+                openclawMessages: [{ role: 'assistant', content: '您好！我是 OpenCLAW 助手。我可以協助您進行養殖相關操作與查詢。' }],
+                openclawInput: '',
+                openclawLoading: false,
+                selectedArea: 'newtaipei',
+                areas: [
+                    { value: 'newtaipei', label: '新北市' },
+                    { value: 'penghu',   label: '澎湖縣' }
+                ],
+                aiMessages: [{ role: 'assistant', content: '您好！我是您的養殖監控系統 AI 助手。我可以幫助您分析數據、解答問題，或提供養殖建議。請問有什麼可以幫助您的嗎？' }],
+                aiInput: '',
+                aiLoading: false,
+                loading: false,
+                error: null,
+                fishData: [],
+                weatherData: [],
+                forecastData: [],
+                feedData: [],
+                showFishModal: false,
+                savingFish: false,
+                editingFish: null,
+                fishForm: { fish_type: '', quantity: null, weight: null, health_status: 'good' },
+                showFeedModal: false,
+                savingFeed: false,
+                editingFeed: null,
+                feedForm: { feed_type: '', quantity: null, unit: 'kg' },
+                metrics: { totalFish: 0, healthIndex: 0, waterTemp: 0, alerts: 0 },
+                recentActivities: [],
+                dashboardData: { totalPonds: 0, activeAlerts: 0, todayFeed: 0, waterQuality: {} },
+                apiBase: '',
+
+                /* --- new state for glassmorphism dashboard --- */
+                testMode: false,
+                testType: 'normal',
+                weatherSkeleton: true,
+                alertCards: { health: false, do: false, ph: false, temp: false },
+                dashboardMetrics: { healthIndex: 0, dissolvedOxygen: 0, phLevel: 0, waterTemp: 0 },
+                weatherDisplay: { icon: 'fa-sun', iconLabel: '晴朗', rain: 15, wind: 12, pressure: 1013 },
+
+                /* --- Chart.js instance references --- */
+                _chartHealth: null,
+                _chartDO: null,
+                _chartPH: null,
+                _chartTemp: null
+            };
+        },
+
+        methods: {
+            /* ==========================================================
+               ORIGINAL API LOGIC (PRESERVED)
+               ========================================================== */
+            toggleSidebar() { this.sidebarVisible = !this.sidebarVisible; },
+
+            showSection(section) {
+                this.currentSection = section;
+                this.sidebarVisible = false;
+                if (section === 'weather')    { this.loadWeatherData(); this.loadForecastData(); }
+                if (section === 'fish-data')  { this.loadFishData(); }
+                if (section === 'feed')       { this.loadFeedData(); }
+            },
+
+            toggleAIChat()   { console.log('[toggleAIChat] open:', !this.aiChatOpen); this.aiChatOpen = !this.aiChatOpen; },
+            toggleOpenCLAW() { console.log('[toggleOpenCLAW] open:', !this.openclawOpen, '| sidebar element:', !!document.querySelector('.openclaw-chat-sidebar')); this.openclawOpen = !this.openclawOpen; },
+
+            async sendAIMessage() {
+                if (!this.aiInput.trim() || this.aiLoading) return;
+                const userMessage = this.aiInput.trim();
+                this.aiMessages.push({ role: 'user', content: userMessage });
+                this.aiInput = '';
+                this.aiLoading = true;
+                try {
+                    const response = await axios.post(`${this.apiBase}/api/opencli/gemini/chat`, { message: userMessage }, {
+                        headers: { 'Content-Type': 'application/json' }, timeout: 90000
+                    });
+                    if (response.data && response.data.success) {
+                        let replyText = '';
+                        if (response.data.data && response.data.data.response) replyText = response.data.data.response;
+                        else if (response.data.data && response.data.data.data && response.data.data.data.response) replyText = response.data.data.data.response;
+                        else if (response.data.reply) replyText = response.data.reply;
+                        if (replyText) {
+                            this.aiMessages.push({ role: 'assistant', content: replyText });
+                        } else {
+                            this.aiMessages.push({ role: 'assistant', content: '收到回應，但內容格式有誤' });
+                        }
+                    } else {
+                        const errorMsg = response.data?.message || response.data?.error || '未知錯誤';
+                        this.aiMessages.push({ role: 'assistant', content: '抱歉，發生錯誤：' + errorMsg });
+                    }
+                } catch (error) {
+                    console.error('AI Query Error:', error);
+                    let errorMsg = '抱歉，無法連線到 AI 服務。請確認 API 伺服器正在運行。';
+                    if (error.code === 'ECONNREFUSED') errorMsg = '無法連線到 API 伺服器。請確認伺服器正在運行。';
+                    else if (error.response) errorMsg = '伺服器錯誤：' + (error.response.data?.message || error.response.status);
+                    this.aiMessages.push({ role: 'assistant', content: errorMsg });
+                }
+                this.aiLoading = false;
+            },
+
+            async sendOpenCLAWMessage() {
+                if (!this.openclawInput.trim() || this.openclawLoading) return;
+                const userMessage = this.openclawInput.trim();
+                this.openclawMessages.push({ role: 'user', content: userMessage });
+                this.openclawInput = '';
+                this.openclawLoading = true;
+                try {
+                    const response = await axios.post(`${this.apiBase}/api/openclaw/chat`, { message: userMessage }, {
+                        headers: { 'Content-Type': 'application/json' }, timeout: 90000
+                    });
+                    if (response.data && response.data.success) {
+                        const replyText = response.data.reply || response.data.message || '收到回應';
+                        this.openclawMessages.push({ role: 'assistant', content: replyText });
+                    } else {
+                        const errorMsg = response.data?.message || response.data?.error || '未知錯誤';
+                        this.openclawMessages.push({ role: 'assistant', content: '抱歉，發生錯誤：' + errorMsg });
+                    }
+                } catch (error) {
+                    console.error('OpenCLAW Error:', error);
+                    let errorMsg = '抱歉，無法連線到 OpenCLAW 服務。';
+                    if (error.response) errorMsg = '伺服器錯誤：' + (error.response.data?.message || error.response.status);
+                    else if (error.code === 'ECONNREFUSED') errorMsg = '無法連線到 API 伺服器。請確認伺服器正在運行。';
+                    this.openclawMessages.push({ role: 'assistant', content: errorMsg });
+                }
+                this.openclawLoading = false;
+            },
+
+            logout() {
+                if (confirm('確定要登出嗎？')) { window.location.href = 'login.html'; }
+            },
+
+            async makeAPIRequest(endpoint, options = {}) {
+                try {
+                    const response = await axios.get(`${this.apiBase}${endpoint}`, {
+                        headers: { 'Content-Type': 'application/json' }, timeout: 15000, ...options
+                    });
+                    return response.data;
+                } catch (error) {
+                    console.error(`API Error (${endpoint}):`, error);
+                    throw error;
+                }
+            },
+
+            async loadDashboardData() {
+                this.loading = true;
+                this.error = null;
+                try {
+                    const fishResponse = await this.makeAPIRequest('/api/fish/data');
+                    if (fishResponse.success && fishResponse.data) {
+                        this.fishData = fishResponse.data;
+                        this.metrics.totalFish = fishResponse.data.reduce((sum, fish) => sum + fish.quantity, 0);
+                    }
+                    await this.loadWeatherData();
+                    if (this.fishData.length > 0) {
+                        const healthScores = { excellent: 100, good: 85, fair: 65, poor: 40 };
+                        let totalScore = 0, totalWeight = 0;
+                        this.fishData.forEach(fish => {
+                            const score = healthScores[fish.health_status] || 50;
+                            const weight = fish.weight || 1;
+                            totalScore += score * weight;
+                            totalWeight += weight;
+                        });
+                        this.metrics.healthIndex = totalWeight > 0 ? Math.floor(totalScore / totalWeight) : 0;
+                    } else {
+                        this.metrics.healthIndex = 0;
+                    }
+                    this.metrics.alerts = 0;
+                    this.generateRecentActivities();
+
+                    /* --- Update glass dashboard metrics from real data --- */
+                    this.dashboardMetrics.healthIndex = this.metrics.healthIndex;
+                    this.dashboardMetrics.waterTemp = this.metrics.waterTemp;
+                    if (this.weatherData.length > 0) {
+                        const latest = this.weatherData[0];
+                        this.dashboardMetrics.dissolvedOxygen = parseFloat(latest.dissolved_oxygen) || 0;
+                        this.dashboardMetrics.phLevel = parseFloat(latest.ph_level) || 0;
+                    }
+
+                    /* --- Run threshold checks --- */
+                    this.checkThreshold(this.dashboardMetrics.healthIndex, 'health');
+                    this.checkThreshold(this.dashboardMetrics.dissolvedOxygen, 'do');
+                    this.checkThreshold(this.dashboardMetrics.phLevel, 'ph');
+                    this.checkThreshold(this.dashboardMetrics.waterTemp, 'temp');
+
+                    /* --- Update weather placeholder --- */
+                    this.weatherSkeleton = false;
+                    if (this.weatherData.length > 0) {
+                        const w = this.weatherData[0];
+                        this.updateWeatherPlaceholder({
+                            temperature: w.temperature,
+                            humidity: w.humidity,
+                            rain: w.humidity > 70 ? 65 : 15,
+                            wind: 12,
+                            pressure: 1013
+                        });
+                    }
+
+                    this.$nextTick(() => { this.initKpiCharts(); });
+                } catch (error) {
+                    console.error('Dashboard data load error:', error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async loadFishData() {
+                this.loading = true;
+                try {
+                    const response = await this.makeAPIRequest('/api/fish/data');
+                    if (response.success) { this.fishData = response.data || []; }
+                } catch (error) {
+                    this.error = '無法載入魚類數據';
+                } finally { this.loading = false; }
+            },
+
+            showAddFishModal() {
+                this.editingFish = null;
+                this.fishForm = { fish_type: '', quantity: null, weight: null, health_status: 'good' };
+                this.showFishModal = true;
+            },
+            editFish(fish) {
+                this.editingFish = fish;
+                this.fishForm = { id: fish.id, fish_type: fish.fish_type, quantity: fish.quantity, weight: fish.weight, health_status: fish.health_status };
+                this.showFishModal = true;
+            },
+            closeFishModal() {
+                this.showFishModal = false; this.editingFish = null;
+                this.fishForm = { fish_type: '', quantity: null, weight: null, health_status: 'good' };
+            },
+            async saveFishData() {
+                this.savingFish = true;
+                try {
+                    let response;
+                    if (this.editingFish) {
+                        response = await axios.put(`${this.apiBase}/api/fish/data`, this.fishForm, { headers: { 'Content-Type': 'application/json' } });
+                    } else {
+                        response = await axios.post(`${this.apiBase}/api/fish/data`, this.fishForm, { headers: { 'Content-Type': 'application/json' } });
+                    }
+                    if (response.data.success) { this.closeFishModal(); this.loadFishData(); alert('魚類數據已儲存！'); }
+                    else { alert('儲存失敗：' + response.data.message); }
+                } catch (error) {
+                    alert('儲存失敗：' + (error.response?.data?.message || error.message));
+                } finally { this.savingFish = false; }
+            },
+
+            showAddFeedModal() {
+                this.editingFeed = null; this.feedForm = { feed_type: '', quantity: null, unit: 'kg' }; this.showFeedModal = true;
+            },
+            editFeed(feed) {
+                this.editingFeed = feed;
+                this.feedForm = { id: feed.id, feed_type: feed.feed_type, quantity: feed.quantity, unit: feed.unit || 'kg' };
+                this.showFeedModal = true;
+            },
+            closeFeedModal() {
+                this.showFeedModal = false; this.editingFeed = null;
+                this.feedForm = { feed_type: '', quantity: null, unit: 'kg' };
+            },
+            async saveFeedData() {
+                this.savingFeed = true;
+                try {
+                    let response;
+                    if (this.editingFeed) {
+                        response = await axios.put(`${this.apiBase}/api/feed/data`, this.feedForm, { headers: { 'Content-Type': 'application/json' } });
+                    } else {
+                        response = await axios.post(`${this.apiBase}/api/feed/data`, this.feedForm, { headers: { 'Content-Type': 'application/json' } });
+                    }
+                    if (response.data.success) { this.closeFeedModal(); this.loadFeedData(); alert('飼料數據已儲存！'); }
+                    else { alert('儲存失敗：' + response.data.message); }
+                } catch (error) {
+                    alert('儲存失敗：' + (error.response?.data?.message || error.message));
+                } finally { this.savingFeed = false; }
+            },
+
+            async loadWeatherData() {
+                this.loading = true;
+                try {
+                    let areaParam = this.selectedArea !== 'newtaipei' ? '?area=' + this.selectedArea : '';
+                    let response = await this.makeAPIRequest('/api/weather/data/cwa' + areaParam);
+                    if (response.success && response.data && response.data.length > 0) {
+                        this.weatherData = response.data;
+                        if (response.data[0].temperature) { this.metrics.waterTemp = response.data[0].temperature; }
+                    } else {
+                        response = await this.makeAPIRequest('/api/weather/data');
+                        if (response.success) {
+                            this.weatherData = response.data || [];
+                            if (response.data && response.data[0]) { this.metrics.waterTemp = response.data[0].temperature || 0; }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Weather data load error:', error);
+                } finally { this.loading = false; }
+            },
+
+            async loadForecastData() {
+                this.loading = true;
+                try {
+                    let areaParam = this.selectedArea !== 'newtaipei' ? 'area=' + this.selectedArea + '&' : '';
+                    let response = await this.makeAPIRequest('/api/weather/forecast?' + areaParam + 'type=week');
+                    if (response.success) {
+                        let rawData = response.data;
+                        let parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                        let result = typeof parsed.result === 'string' ? JSON.parse(parsed.result) : parsed;
+                        this.forecastData = this.parseForecastData(result.records);
+                    }
+                } catch (error) {
+                    console.error('Forecast data load error:', error);
+                } finally { this.loading = false; }
+            },
+
+            parseForecastData(records) {
+                if (!records || !records.Locations || !records.Locations[0]) return [];
+                let loc = records.Locations[0];
+                let location = loc.Location[0];
+                if (!location) return [];
+                let forecast = [], tempData = {};
+                for (let element of location.WeatherElement) {
+                    let elementName = element.ElementName;
+                    for (let time of element.Time) {
+                        let startTime = time.StartTime;
+                        if (!tempData[startTime]) { tempData[startTime] = { time: startTime }; }
+                        if (elementName === '平均溫度' || elementName === 'Temperature') {
+                            tempData[startTime].temp = time.ElementValue ? time.ElementValue[0].Temperature : time.Parameter?.ParameterName;
+                        } else if (elementName === '最高溫度' || elementName === 'MaxTemperature') {
+                            tempData[startTime].maxTemp = time.ElementValue ? time.ElementValue[0].Temperature : time.Parameter?.ParameterName;
+                        } else if (elementName === '最低溫度' || elementName === 'MinTemperature') {
+                            tempData[startTime].minTemp = time.ElementValue ? time.ElementValue[0].Temperature : time.Parameter?.ParameterName;
+                        } else if (elementName === '天氣現象' || elementName === 'Wx') {
+                            tempData[startTime].weather = time.Parameter?.ParameterName;
+                        } else if (elementName === '降雨機率' || elementName === 'PoP') {
+                            tempData[startTime].rain = time.Parameter?.ParameterName;
+                        }
+                    }
+                }
+                Object.values(tempData).forEach(d => {
+                    forecast.push({
+                        time: this.formatDate(d.time), temp: d.temp || '-',
+                        maxTemp: d.maxTemp || '-', minTemp: d.minTemp || '-',
+                        weather: d.weather || '-', rain: d.rain || '-'
+                    });
+                });
+                return forecast;
+            },
+
+            changeArea() { this.loadWeatherData(); this.loadForecastData(); },
+
+            async loadFeedData() {
+                this.loading = true;
+                try {
+                    const response = await this.makeAPIRequest('/api/feed/data');
+                    if (response.success) { this.feedData = response.data || []; }
+                } catch (error) { this.error = '無法載入飼料數據'; }
+                finally { this.loading = false; }
+            },
+
+            generateRecentActivities() {
+                this.recentActivities = [];
+                if (this.fishData.length > 0) {
+                    this.recentActivities.push({ id: 1, title: '魚類數據更新', description: `系統記錄了 ${this.fishData.length} 種魚類數據`, time: '剛剛' });
+                }
+                if (this.weatherData.length > 0) {
+                    const latest = this.weatherData[0];
+                    this.recentActivities.push({ id: 2, title: '天氣監控更新', description: `溫度: ${latest.temperature || 'N/A'}°C, 濕度: ${latest.humidity || 'N/A'}%`, time: '5分鐘前' });
+                }
+                if (this.recentActivities.length === 0) {
+                    this.recentActivities = [
+                        { id: 1, title: '系統初始化', description: 'VMS系統已成功啟動', time: '剛剛' },
+                        { id: 2, title: 'API 連接', description: '嘗試連接中央氣象署 API', time: '5分鐘前' }
+                    ];
+                }
+            },
+
+            refreshData() {
+                if (this.testMode) {
+                    const mock = MOCK_DATA[this.testType];
+                    this.updateDashboard(mock);
+                } else {
+                    this.loadDashboardData();
+                }
+            },
+
+            getHealthClass(status) {
+                const classes = { excellent: 'badge-success', good: 'badge-success', fair: 'badge-warning', poor: 'badge-danger' };
+                return `badge ${classes[status] || 'badge-secondary'}`;
+            },
+            getHealthText(status) {
+                const texts = { excellent: '優良', good: '良好', fair: '一般', poor: '需改善' };
+                return texts[status] || status;
+            },
+            formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            },
+
+            /* ==========================================================
+               NEW METHODS — 玻璃擬態儀表板專用
+               ========================================================== */
+
+            /**
+             * updateDashboard(data)
+             * 統一的數據更新接口，接收 JSON 物件直接更新所有監控卡片與圖表。
+             * @param {Object} data - { healthIndex, dissolvedOxygen, phLevel, waterTemp, weather? }
+             */
+            updateDashboard(data) {
+                if (!data) return;
+                console.log('[updateDashboard] 接收數據:', JSON.stringify(data, null, 2));
+
+                /* Update reactive metrics */
+                this.dashboardMetrics.healthIndex    = data.healthIndex    ?? this.dashboardMetrics.healthIndex;
+                this.dashboardMetrics.dissolvedOxygen = data.dissolvedOxygen ?? this.dashboardMetrics.dissolvedOxygen;
+                this.dashboardMetrics.phLevel        = data.phLevel        ?? this.dashboardMetrics.phLevel;
+                this.dashboardMetrics.waterTemp       = data.waterTemp      ?? this.dashboardMetrics.waterTemp;
+
+                /* Threshold checks */
+                this.checkThreshold(this.dashboardMetrics.healthIndex, 'health');
+                this.checkThreshold(this.dashboardMetrics.dissolvedOxygen, 'do');
+                this.checkThreshold(this.dashboardMetrics.phLevel, 'ph');
+                this.checkThreshold(this.dashboardMetrics.waterTemp, 'temp');
+
+                /* Weather placeholder update */
+                if (data.weather) {
+                    this.weatherSkeleton = false;
+                    this.updateWeatherPlaceholder(data.weather);
+                }
+
+                /* Chart updates */
+                this.$nextTick(() => { this.initKpiCharts(); });
+            },
+
+            /**
+             * checkThreshold(value, type)
+             * 檢查數值是否超過安全閾值，自動為對應卡片新增/移除 alert-pulse CSS class。
+             * @param {number} value - 當前數值
+             * @param {string} type  - 'health' | 'do' | 'ph' | 'temp'
+             * @returns {boolean} 是否觸發警報
+             */
+            checkThreshold(value, type) {
+                if (value == null || isNaN(value)) return false;
+                const t = THRESHOLDS[type];
+                if (!t) { console.warn(`[checkThreshold] 未知類型: ${type}`); return false; }
+
+                let isAlert = false;
+                if (t.max !== undefined) {
+                    isAlert = value < t.min || value > t.max;
+                } else {
+                    isAlert = value < t.min;
+                }
+
+                const cardKey = type === 'do' ? 'do' : type;
+                this.alertCards[cardKey] = isAlert;
+
+                if (isAlert) {
+                    console.warn(`[ALERT] ${t.label} 異常：當前值 = ${value}${t.unit}，閾值 = ${t.min}${t.unit}${t.max ? ' ~ ' + t.max + t.unit : ''}`);
+                } else {
+                    console.log(`[OK] ${t.label} 正常：當前值 = ${value}${t.unit}`);
+                }
+
+                return isAlert;
+            },
+
+            /**
+             * toggleTestMode()
+             * 切換儀表板「正常狀態」與「極端氣候風險狀態」的視覺效果。
+             */
+            toggleTestMode() {
+                this.testMode = !this.testMode;
+                if (this.testMode) {
+                    this.testType = 'alert';
+                    const alertData = MOCK_DATA.alert;
+                    console.log('[toggleTestMode] 切換至極端氣候風險狀態');
+                    this.updateDashboard(alertData);
+                } else {
+                    this.testType = 'normal';
+                    console.log('[toggleTestMode] 恢復正常狀態，重新載入 API 數據');
+                    this.loadDashboardData();
+                }
+            },
+
+            /**
+             * testDashboardUpdate()
+             * 模擬警報數據 — 在瀏覽器 Console 執行此函數，即可驗證卡片顏色、動畫與警告圖示。
+             * 用法：在 Console 輸入 testDashboardUpdate()
+             */
+            testDashboardUpdate() {
+                console.log('[testDashboardUpdate] 注入模擬警報數據...');
+                const alertData = {
+                    healthIndex: 32,
+                    dissolvedOxygen: 2.8,
+                    phLevel: 4.2,
+                    waterTemp: 34.5,
+                    weather: { icon: 'fa-poo-storm', iconLabel: '暴風雨', rain: 98, wind: 58, pressure: 975 }
+                };
+                this.updateDashboard(alertData);
+                this.testMode = true;
+                this.testType = 'alert';
+                console.log('[testDashboardUpdate] 模擬警報已啟用。卡片應出現紅色邊框 + animate-pulse 效果。');
+            },
+
+            /* --- Weather placeholder update --- */
+            updateWeatherPlaceholder(data) {
+                if (!data) return;
+                this.weatherSkeleton = false;
+                let icon = 'fa-cloud-sun';
+                if (data.rain > 70) icon = 'fa-cloud-rain';
+                else if (data.rain > 40) icon = 'fa-cloud';
+                else if (data.temperature > 32) icon = 'fa-sun';
+
+                this.weatherDisplay = {
+                    icon: data.icon || icon,
+                    iconLabel: data.iconLabel || this.getWeatherLabel(data),
+                    rain: data.rain ?? 0,
+                    wind: data.wind ?? 0,
+                    pressure: data.pressure ?? 1013
+                };
+            },
+
+            getWeatherLabel(data) {
+                if (data.rain > 70) return '暴雨';
+                if (data.rain > 40) return '陰雨';
+                if (data.temperature > 30) return '炎熱';
+                return '晴朗';
+            },
+
+            /* --- KPI Doughnut Charts --- */
+            initKpiCharts() {
+                if (typeof Chart === 'undefined') return;
+                this.createDoughnut('chartHealth', '健康指數', this.dashboardMetrics.healthIndex, 100, ['#10b981', '#e2e8f0']);
+                this.createDoughnut('chartDO', '溶解氧', this.dashboardMetrics.dissolvedOxygen, 14, ['#0ea5e9', '#e2e8f0']);
+                this.createDoughnut('chartPH', 'pH值', this.dashboardMetrics.phLevel, 14, ['#8b5cf6', '#e2e8f0']);
+                this.createDoughnut('chartTemp', '水溫', this.dashboardMetrics.waterTemp, 40, ['#f59e0b', '#e2e8f0']);
+            },
+
+            createDoughnut(canvasId, label, value, max, colors) {
+                const ctx = document.getElementById(canvasId);
+                if (!ctx) return;
+                const instanceKey = '_chart' + canvasId.replace('chart', '');
+
+                /* Destroy existing chart if any */
+                if (this[instanceKey] && typeof this[instanceKey].destroy === 'function') {
+                    try { this[instanceKey].destroy(); } catch(e) { console.warn('Chart destroy failed:', e); }
+                }
+
+                const currentVal = Math.min(Math.max(parseFloat(value) || 0, 0), max);
+                const remaining = Math.max(max - currentVal, 0);
+
+                try {
+                    this[instanceKey] = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: [label, '剩餘'],
+                            datasets: [{
+                                data: [currentVal, remaining],
+                                backgroundColor: [colors[0], colors[1]],
+                                borderColor: 'rgba(255,255,255,0.8)',
+                                borderWidth: 3,
+                                borderRadius: 6,
+                                hoverBorderWidth: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '70%',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(ctx) {
+                                            return ctx.label + ': ' + ctx.raw.toFixed(1);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch(e) {
+                    console.warn(`[Chart] ${canvasId} create failed:`, e);
+                }
+            }
+        },
+
+        mounted() {
+            this.apiBase = window.location.origin;
+            this.loadDashboardData();
+
+            /* Expose test functions to global scope for Console access */
+            window.updateDashboard      = (data) => this.updateDashboard(data);
+            window.checkThreshold       = (value, type) => this.checkThreshold(value, type);
+            window.toggleTestMode       = () => this.toggleTestMode();
+            window.testDashboardUpdate  = () => this.testDashboardUpdate();
+            window.MOCK_DATA            = MOCK_DATA;
+
+            console.log('%c[VMS Dashboard] 初始化完成 %c| %c可用測試指令: %ctestDashboardUpdate() %c| %ctoggleTestMode()',
+                'color:#10b981;font-weight:bold;', '',
+                'color:#f59e0b;', 'color:#3b82f6;font-weight:bold;', '',
+                'color:#f59e0b;', 'color:#3b82f6;font-weight:bold;');
+            console.log('%c[Mock Data] %cMOCK_DATA.normal %c& %cMOCK_DATA.alert %c已就緒',
+                'color:#10b981;', 'color:#94a3b8;', '', 'color:#ef4444;', '');
+        }
+    }).mount('#app');
+    </script>
 </body>
 </html>

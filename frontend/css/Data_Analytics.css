@@ -1,0 +1,16 @@
+/* Data Analytics Page — Glassmorphism Theme (Placeholder) */
+
+.data-analytics-container {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 60vh; text-align: center;
+}
+.data-analytics-container .placeholder-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px);
+    border-radius: 20px; padding: 3rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+}
+.data-analytics-container .placeholder-card i { font-size: 4rem; color: #94a3b8; opacity: 0.4; }
+.data-analytics-container .placeholder-card h2 { color: #1e293b; margin: 1rem 0; font-weight: 700; }
+.data-analytics-container .placeholder-card p { color: #64748b; }
