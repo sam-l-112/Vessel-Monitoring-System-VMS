@@ -7,9 +7,9 @@
     <meta name="keywords" content="示警系統,警報,養殖監控">
     <meta name="author" content="VMS Team">
 
-    <link rel="stylesheet" href="/css/styles.css?v=20250601">
-    <link rel="stylesheet" href="/css/Alarm_system.css?v=20250601">
-    <link rel="stylesheet" href="/css/Dashboard.css?v=20250601">
+    <link rel="stylesheet" href="../css/styles.css?v=20250601">
+    <link rel="stylesheet" href="../css/Alarm_system.css?v=20250601">
+    <link rel="stylesheet" href="../css/Dashboard.css?v=20250601">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -80,31 +80,30 @@
                                 <div class="row align-items-center">
                                     <div class="col-md-8">
                                         <h2><i class="fas fa-shield-alt me-2"></i>示警類型總覽</h2>
-                                        <!-- <p>系統共監控 {{ alertTypes.length }} 種示警類型</p> -->
-                                        <p>系統監控 中央氣象局 NCDR 災防示警即時訊息 警示資訊</p>
+                                        <p>系統共監控 {{ alertTypes.length }} 種示警類型</p>
                                     </div>
                                     <div class="col-md-4 text-md-end">
                                         <div class="d-flex justify-content-end gap-2">
-                                            <!-- <span class="badge bg-danger fs-6">{{ criticalCount }}</span>
-                                            <span class="badge bg-warning text-dark fs-6">{{ highCount }}</span> -->
-                                            <!-- <span class="badge bg-primary fs-6">{{ mediumCount }}</span>
-                                            <span class="badge bg-success fs-6">{{ lowCount }}</span> --> 
+                                            <span class="badge bg-danger fs-6">{{ criticalCount }}</span>
+                                            <span class="badge bg-warning text-dark fs-6">{{ highCount }}</span>
+                                            <span class="badge bg-primary fs-6">{{ mediumCount }}</span>
+                                            <span class="badge bg-success fs-6">{{ lowCount }}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Stats Grid -->
-                            <!-- <div class="alert-stats-grid">
+                            <div class="alert-stats-grid">
                                 <div class="card metric-card alert-total"><div class="card-body"><h5>總示警類型</h5><h2>{{ alertTypes.length }}</h2></div></div>
                                 <div class="card metric-card alert-critical"><div class="card-body"><h5>嚴重</h5><h2>{{ criticalCount }}</h2></div></div>
                                 <div class="card metric-card alert-high"><div class="card-body"><h5>高度</h5><h2>{{ highCount }}</h2></div></div>
                                 <div class="card metric-card alert-medium"><div class="card-body"><h5>中度</h5><h2>{{ mediumCount }}</h2></div></div>
                                 <div class="card metric-card alert-low"><div class="card-body"><h5>低度</h5><h2>{{ lowCount }}</h2></div></div>
-                            </div> -->
+                            </div>
 
                             <!-- Filter Bar -->
-                            <!-- <div class="filter-bar">
+                            <div class="filter-bar">
                                 <div class="row g-2 align-items-center">
                                     <div class="col-md-3">
                                         <select class="form-select" v-model="severityFilter">
@@ -127,10 +126,10 @@
                                     </div>
                                     <div class="col-md-3 text-md-end"><small class="text-muted">共 {{ filteredTypes.length }} 筆</small></div>
                                 </div>
-                            </div> -->
+                            </div>
 
                             <!-- Alert Types List + Chart -->
-                            <!-- <div class="row">
+                            <div class="row">
                                 <div class="col-md-8">
                                     <div class="card">
                                         <div class="card-header bg-white py-3"><h5 class="mb-0 fw-bold"><i class="fas fa-list me-2 text-primary"></i>示警類型清單</h5></div>
@@ -158,9 +157,9 @@
                                             </ul></nav>
                                         </div>
                                     </div>
-                                </div> -->
+                                </div>
 
-                                <!-- <div class="col-md-4">
+                                <div class="col-md-4">
                                     <div class="card mb-3">
                                         <div class="card-header bg-white py-3"><h5 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>severity 分佈</h5></div>
                                         <div class="card-body"><canvas id="severityChart" height="250"></canvas></div>
@@ -176,7 +175,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div> -->
+                            </div>
 
                             <!-- CWA Alerts Tab Panel -->
                             <div class="row mt-4">
@@ -396,7 +395,7 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js/sidebar.js?v=20250601"></script>
-    <script src="/js/Alarm_system.js?v=20250601"></script>
+    <script src="../js/sidebar.js?v=20250601"></script>
+    <script src="../js/Alarm_system.js?v=20250601"></script>
 </body>
 </html>

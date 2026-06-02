@@ -1,0 +1,108 @@
+/* Login Page — Glassmorphism Theme */
+
+:root {
+    --login-primary: #2563eb;
+    --login-secondary: #64748b;
+    --login-success: #10b981;
+    --login-danger: #ef4444;
+    --login-warning: #f59e0b;
+    --login-light: #f8fafc;
+    --login-dark: #1f2937;
+    --login-border: #e5e7eb;
+    --login-shadow: rgba(0, 0, 0, 0.08);
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 25%, #f0f9ff 50%, #bae6fd 75%, #e0f2fe 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+}
+
+.login-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+    z-index: 10;
+}
+
+.login-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    padding: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.login-header { margin-bottom: 2rem; text-align: center; }
+.login-header i { font-size: 3rem; color: var(--login-primary); margin-bottom: 0.5rem; }
+.login-header h2 { color: var(--login-dark); font-weight: 700; font-size: 1.75rem; }
+.login-header p { color: var(--login-secondary); font-size: 0.9rem; margin-top: 0.25rem; }
+
+.login-form .form-label { font-weight: 600; color: var(--login-dark); margin-bottom: 0.5rem; }
+.login-form .form-control {
+    border: 2px solid var(--login-border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.7);
+}
+.login-form .form-control:focus {
+    border-color: var(--login-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    background: white;
+}
+.login-form .form-control:disabled { background-color: #f9fafb; opacity: 0.7; }
+.login-form .input-group .btn { border: 2px solid var(--login-border); border-left: none; }
+.login-form .input-group .btn:focus { box-shadow: none; }
+
+.form-check-input:checked { background-color: var(--login-primary); border-color: var(--login-primary); }
+.form-check-label { color: var(--login-secondary); font-weight: 500; }
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--login-primary), #1d4ed8);
+    border: none; border-radius: 10px;
+    padding: 0.85rem 1.5rem; font-weight: 600; font-size: 1rem;
+    transition: all 0.3s ease; width: 100%;
+}
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+}
+.btn-primary:disabled { opacity: 0.7; transform: none; }
+
+.alert { border-radius: 10px; border: none; font-weight: 500; }
+.alert-danger { background-color: #fef2f2; color: #dc2626; }
+.alert-success { background-color: #f0fdf4; color: #16a34a; }
+.text-decoration-none { color: var(--login-secondary); transition: color 0.3s ease; }
+.text-decoration-none:hover { color: var(--login-primary); }
+
+.login-footer { border-top: 1px solid rgba(0,0,0,0.06); padding-top: 1.5rem; text-align: center; }
+
+/* Background floating elements */
+.background-elements { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.floating-element { position: absolute; opacity: 0.08; font-size: 6rem; animation: float 6s ease-in-out infinite; }
+.element-1 { top: 8%; left: 8%; animation-delay: 0s; }
+.element-2 { top: 55%; right: 12%; animation-delay: 2s; }
+.element-3 { bottom: 15%; left: 18%; animation-delay: 4s; }
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+.loading-spinner { width: 1rem; height: 1rem; }
+
+@media (max-width: 480px) {
+    .login-container { padding: 10px; }
+    .login-card { padding: 1.5rem; }
+    .login-header h2 { font-size: 1.5rem; }
+    .floating-element { font-size: 3rem; }
+}
+@media (prefers-reduced-motion: reduce) { .floating-element { animation: none; } .btn-primary, .form-control, .text-decoration-none { transition: none; } }

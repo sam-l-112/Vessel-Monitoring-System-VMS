@@ -16,6 +16,9 @@
   "action": {
     "default_title": "OpenCLAW 養殖助手"
   },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://192.168.50.75"
+  },
   "icons": {
     "128": "icons/icon128.png"
   }

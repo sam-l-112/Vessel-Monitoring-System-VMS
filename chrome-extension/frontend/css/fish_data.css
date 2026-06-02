@@ -1,0 +1,117 @@
+/* Fish Data Page — Glassmorphism Theme */
+
+* { box-sizing: border-box; }
+
+/* Header */
+.header-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 25px 30px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.header-card h1 { color: #1e293b; font-size: 1.8rem; font-weight: 700; margin: 0; }
+
+/* Buttons */
+.btn { border-radius: 10px; padding: 10px 20px; font-weight: 600; transition: all 0.3s ease; border: none; }
+.btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5); }
+.btn-outline-primary { color: #2563eb; border: 2px solid #2563eb; }
+.btn-outline-primary:hover { background: #2563eb; color: white; }
+.btn-outline-success { color: #10b981; border: 2px solid #10b981; }
+.btn-outline-success:hover { background: #10b981; color: white; }
+.btn-outline-danger { color: #ef4444; border: 2px solid #ef4444; }
+.btn-outline-danger:hover { background: #ef4444; color: white; }
+.btn-secondary { background: #e2e8f0; color: #475569; }
+.btn-secondary:hover { background: #cbd5e0; }
+
+/* Data Grid (override styles.css with page-specific spacing) */
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-top: 1rem;
+}
+
+/* Data Card (glass) */
+.data-card {
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 16px !important;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+.data-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-color: rgba(37, 99, 235, 0.3) !important;
+}
+.data-card h4 { color: #1e293b; font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid rgba(226, 232, 240, 0.5); }
+.data-card p { color: #475569; margin-bottom: 12px; font-size: 0.95rem; display: flex; justify-content: space-between; }
+.data-card p strong { color: #1e293b; font-weight: 600; }
+.data-card .label { color: #64748b; font-weight: 500; }
+.data-card .value { font-weight: 700; color: #2563eb; font-size: 1.1em; }
+
+/* Badge */
+.badge { padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+
+/* Modal (keep purple gradient header for distinction) */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(5px);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 9999; padding: 20px;
+}
+.modal-content {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    border-radius: 20px;
+    width: 100%; max-width: 500px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    animation: modalSlideIn 0.3s ease;
+}
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(-50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.modal-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white; padding: 20px 25px;
+    border-radius: 20px 20px 0 0;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.modal-title { font-weight: 700; font-size: 1.2rem; }
+.modal-header .btn-close { filter: invert(1); }
+.modal-body { padding: 25px; }
+.modal-footer { padding: 20px 25px; border-top: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: flex-end; gap: 12px; }
+
+/* Form */
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; color: #1e293b; font-weight: 600; margin-bottom: 8px; font-size: 0.95rem; }
+.form-control, .form-select {
+    width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 10px;
+    font-size: 1rem; transition: all 0.3s; background: rgba(255,255,255,0.7);
+}
+.form-control:focus, .form-select:focus {
+    border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); outline: none; background: white;
+}
+.form-control::placeholder { color: #94a3b8; }
+
+/* Loading, Error, Empty — handled by styles.css */
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container-fluid { padding: 10px; margin: 15px auto; }
+    .header-card { padding: 20px; }
+    .header-card h1 { font-size: 1.4rem; }
+    .data-grid { grid-template-columns: 1fr; }
+    .modal-content { margin: 10px; }
+}

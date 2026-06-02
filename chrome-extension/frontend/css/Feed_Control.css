@@ -1,0 +1,100 @@
+/* Feed Control Page — Glassmorphism Theme (Green Accent) */
+
+* { box-sizing: border-box; }
+
+/* Header */
+.header-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 16px; padding: 25px 30px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.header-card h1 { color: #1e293b; font-size: 1.8rem; font-weight: 700; margin: 0; }
+
+/* Buttons */
+.btn { border-radius: 10px; padding: 10px 20px; font-weight: 600; transition: all 0.3s ease; border: none; }
+.btn-primary { background: linear-gradient(135deg, #059669, #047857); color: white; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(5, 150, 105, 0.5); }
+.btn-outline-primary { color: #059669; border: 2px solid #059669; }
+.btn-outline-primary:hover { background: #059669; color: white; }
+.btn-outline-success { color: #10b981; border: 2px solid #10b981; }
+.btn-outline-success:hover { background: #10b981; color: white; }
+.btn-outline-danger { color: #ef4444; border: 2px solid #ef4444; }
+.btn-outline-danger:hover { background: #ef4444; color: white; }
+.btn-secondary { background: #e2e8f0; color: #475569; }
+.btn-secondary:hover { background: #cbd5e0; }
+
+/* Table */
+.table-responsive {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(8px);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.table { margin: 0; }
+.table thead { background: linear-gradient(135deg, #059669, #047857); color: white; }
+.table thead th { padding: 18px; font-weight: 600; font-size: 0.95rem; border: none; }
+.table tbody tr { transition: background-color 0.2s; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.table tbody tr:hover { background: rgba(255, 255, 255, 0.5); }
+.table tbody td { padding: 16px 18px; vertical-align: middle; color: #475569; }
+.table tbody td:first-child { font-weight: 600; color: #1e293b; }
+.table .value { font-weight: 700; color: #059669; font-size: 1.1em; }
+
+/* Modal */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.35); backdrop-filter: blur(5px);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 9999; padding: 20px;
+}
+.modal-content {
+    background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(16px);
+    border-radius: 20px; width: 100%; max-width: 500px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    animation: modalSlideIn 0.3s ease;
+}
+@keyframes modalSlideIn { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
+.modal-header {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: white; padding: 20px 25px;
+    border-radius: 20px 20px 0 0;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.modal-title { font-weight: 700; font-size: 1.2rem; }
+.modal-header .btn-close { filter: invert(1); }
+.modal-body { padding: 25px; }
+.modal-footer { padding: 20px 25px; border-top: 1px solid rgba(0,0,0,0.08); display: flex; justify-content: flex-end; gap: 12px; }
+
+/* Form */
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; color: #1e293b; font-weight: 600; margin-bottom: 8px; font-size: 0.95rem; }
+.form-control, .form-select {
+    width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 10px;
+    font-size: 1rem; transition: all 0.3s; background: rgba(255,255,255,0.7);
+}
+.form-control:focus, .form-select:focus { border-color: #059669; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); outline: none; background: white; }
+.form-control::placeholder { color: #94a3b8; }
+
+/* Section titles */
+.data-section h3 { color: #1e293b; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; }
+
+/* Fade In */
+.fade-in { animation: fadeIn 0.5s ease-in; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Loading, Error, Empty — handled by styles.css */
+
+@media (max-width: 768px) {
+    .container-fluid { padding: 10px; margin: 15px auto; }
+    .header-card { padding: 20px; }
+    .header-card h1 { font-size: 1.4rem; }
+    .table { font-size: 0.9rem; }
+    .table thead th, .table tbody td { padding: 12px 8px; }
+    .modal-content { margin: 10px; }
+}

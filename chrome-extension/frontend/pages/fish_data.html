@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VMS - 魚類數據管理">
+    <meta name="keywords" content="養殖,魚類,數據管理">
+    <meta name="author" content="VMS Team">
+
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/fish_data.css">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { corePlugins: { preflight: false } }
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <title>魚類數據管理 - VMS</title>
+</head>
+<body>
+    <div id="app" class="fade-in">
+        <!-- Unified Header -->
+        <header class="vms-header d-flex align-items-center px-3">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm d-md-none text-white-50 border-0 p-1" @click="toggleSidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="dashboard.html" class="vms-header-brand text-decoration-none">
+                    <i class="fas fa-fish me-2"></i>VMS - 養殖監控系統
+                </a>
+            </div>
+            <div class="ms-auto">
+                <button class="vms-header-logout-btn" @click="logout">
+                    <i class="fas fa-sign-out-alt me-1"></i>登出
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile 側欄遮罩 -->
+        <div v-if="sidebarVisible" class="sidebar-backdrop d-md-none" @click="toggleSidebar"></div>
+
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <div class="col-auto px-0">
+                    <vms-sidebar active-page="fish" :class="{ 'mobile-show': sidebarVisible }"></vms-sidebar>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col ps-0">
+                    <div class="main-content p-4">
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="h2"><i class="fas fa-fish me-2"></i>魚類數據管理</h1>
+                </div>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" @click="loadFishData">
+                            <i class="fas fa-sync-alt me-1"></i>刷新
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success" @click="showAddFishModal">
+                            <i class="fas fa-plus me-1"></i>新增魚類
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="loading" class="loading-overlay">
+                <div class="loading-spinner"></div>
+            </div>
+
+            <!-- Error -->
+            <div v-if="error" class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>{{ error }}
+            </div>
+
+            <!-- Fish Data Grid -->
+            <div v-if="fishData.length > 0" class="data-section">
+                <h3><i class="fas fa-fish me-2"></i>魚類養殖數據</h3>
+                <div class="data-grid">
+                    <div v-for="fish in fishData" :key="fish.id" class="data-card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h4>{{ fish.fish_type }}</h4>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary me-1" @click="editFish(fish)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @click="deleteFish(fish.id)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p><span class="label">📊 數量</span> <span class="value">{{ fish.quantity }}</span> 條</p>
+                        <p><span class="label">⚖️ 體重</span> {{ fish.weight || 'N/A' }} kg</p>
+                        <p><span class="label">❤️ 健康</span>
+                            <span :class="'badge badge-' + getHealthClass(fish.health_status)">
+                                {{ getHealthText(fish.health_status) }}
+                            </span>
+                        </p>
+                        <p><span class="label">🕐 更新</span> {{ formatDate(fish.updated_at) }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else-if="!loading" class="empty-state">
+                <i class="fas fa-fish"></i>
+                <h4>尚未有魚類數據</h4>
+                <p>系統尚未記錄任何魚類養殖數據。</p>
+                <button class="btn btn-primary" @click="showAddFishModal">
+                    <i class="fas fa-plus me-1"></i>新增第一筆魚類數據
+                </button>
+            </div>
+        </div>
+
+        <!-- Add/Edit Fish Modal -->
+        <div v-if="showFishModal" class="modal-overlay" @click.self="closeFishModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ editingFish ? '編輯魚類' : '新增魚類' }}</h5>
+                    <button type="button" class="btn-close" @click="closeFishModal"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="saveFishData">
+                        <div class="form-group">
+                            <label class="form-label">🐟 魚類名稱</label>
+                            <input type="text" class="form-control" v-model="fishForm.fish_type" required placeholder="例如：吳郭魚、石斑">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">📊 數量 (尾)</label>
+                            <input type="number" class="form-control" v-model.number="fishForm.quantity" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">⚖️ 平均體重 (kg)</label>
+                            <input type="number" class="form-control" v-model.number="fishForm.weight" step="0.1" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">❤️ 健康狀況</label>
+                            <select class="form-select" v-model="fishForm.health_status">
+                                <option value="excellent">优良</option>
+                                <option value="good">良好</option>
+                                <option value="fair">一般</option>
+                                <option value="poor">需改善</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @click="closeFishModal">取消</button>
+                            <button type="submit" class="btn btn-primary" :disabled="savingFish">
+                                {{ savingFish ? '儲存中...' : '儲存' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application JavaScript -->
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/fish_data.js?v=20240504g"></script>
+</body>
+</html>
