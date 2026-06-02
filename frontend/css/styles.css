@@ -114,6 +114,54 @@ body {
     margin-right: 0.5rem;
 }
 
+/* ---- VMS Sidebar Component (dark glassmorphism, collapse/expand) ---- */
+.vms-sidebar {
+    width: 220px;
+    height: calc(100vh - 52px);
+    position: sticky;
+    top: 52px;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.93) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #f1f5f9;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+.vms-sidebar.collapsed {
+    width: 64px;
+}
+.vms-sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.65);
+    transition: all 0.2s ease;
+    padding: 0.65rem 0.75rem;
+    margin: 0;
+    font-weight: 500;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+.vms-sidebar .nav-link:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+.vms-sidebar .nav-link.active {
+    color: #ffffff;
+    background-color: rgba(59, 130, 246, 0.3);
+    border-left: 3px solid #3b82f6;
+}
+.vms-sidebar .nav-link i {
+    width: 20px;
+    margin-right: 0;
+}
+.vms-sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 0.65rem 0;
+    border-left: none;
+}
+.vms-sidebar.collapsed .nav-link.active {
+    border-left: none;
+}
+
 /* ---- Cards (Bootstrap override: glass) ---- */
 .card, .data-card {
     background: rgba(255, 255, 255, 0.55);
@@ -270,6 +318,63 @@ body {
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ---- Sidebar Backdrop (mobile) ---- */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1040;
+}
+
+/* ---- VMS Unified Header ---- */
+.vms-header {
+    height: 52px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+.vms-header-brand {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: opacity 0.2s ease;
+}
+.vms-header-brand:hover {
+    opacity: 0.85;
+    color: #ffffff;
+}
+.vms-header-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+.vms-header-logout-btn:hover {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.45);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+}
+.vms-header-logout-btn:active {
+    transform: scale(0.97);
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
     .sidebar {
@@ -277,9 +382,16 @@ body {
         width: 250px; z-index: 1000; transition: left 0.3s ease;
     }
     .sidebar.show { left: 0; }
+    .vms-sidebar {
+        position: fixed; top: 0; left: -220px;
+        width: 220px; z-index: 1050; height: 100vh;
+        transition: left 0.3s ease;
+    }
+    .vms-sidebar.mobile-show { left: 0; }
     .main-content { margin-left: 0; }
     .glass-card { border-radius: 14px; }
 }
+
 
 /* ---- Utility Classes ---- */
 .text-primary   { color: var(--primary-color)   !important; }

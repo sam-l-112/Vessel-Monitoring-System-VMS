@@ -81,7 +81,7 @@ func GetAlertTypes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := database.DB.Query(
-		"SELECT id, name, description, severity FROM alert_types WHERE is_active = TRUE ORDER BY id ASC LIMIT ? OFFSET ?",
+		"SELECT id, name, description, severity, is_active FROM alert_types WHERE is_active = TRUE ORDER BY id ASC LIMIT ? OFFSET ?",
 		limit, offset,
 	)
 	if err != nil {
@@ -98,7 +98,7 @@ func GetAlertTypes(w http.ResponseWriter, r *http.Request) {
 	var alertTypes []models.AlertType
 	for rows.Next() {
 		var at models.AlertType
-		if err := rows.Scan(&at.ID, &at.Name, &at.Description, &at.Severity); err != nil {
+		if err := rows.Scan(&at.ID, &at.Name, &at.Description, &at.Severity, &at.IsActive); err != nil {
 			continue
 		}
 		alertTypes = append(alertTypes, at)

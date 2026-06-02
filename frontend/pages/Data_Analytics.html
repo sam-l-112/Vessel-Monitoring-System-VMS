@@ -15,15 +15,62 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { corePlugins: { preflight: false } }
+    </script>
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="data-analytics-container">
-        <div class="placeholder-card">
-            <i class="fas fa-chart-bar"></i>
-            <h2>數據分析</h2>
-            <p>此功能正在開發中，敬請期待。</p>
+    <div id="app">
+        <!-- Unified Header -->
+        <header class="vms-header d-flex align-items-center px-3">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm d-md-none text-white-50 border-0 p-1" @click="toggleSidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="dashboard.html" class="vms-header-brand text-decoration-none">
+                    <i class="fas fa-fish me-2"></i>VMS - 養殖監控系統
+                </a>
+            </div>
+            <div class="ms-auto">
+                <button class="vms-header-logout-btn" @click="logout">
+                    <i class="fas fa-sign-out-alt me-1"></i>登出
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile 側欄遮罩 -->
+        <div v-if="sidebarVisible" class="sidebar-backdrop d-md-none" @click="toggleSidebar"></div>
+
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <div class="col-auto px-0">
+                    <vms-sidebar active-page="analytics" :class="{ 'mobile-show': sidebarVisible }"></vms-sidebar>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col ps-0">
+                    <div class="main-content p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <h2 class="fw-bold mb-0"><i class="fas fa-chart-line text-primary me-2"></i>數據分析</h2>
+                            </div>
+                        </div>
+                        <div class="data-analytics-container">
+                            <div class="placeholder-card">
+                                <i class="fas fa-chart-bar"></i>
+                                <h2>數據分析</h2>
+                                <p>此功能正在開發中，敬請期待。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -31,6 +78,7 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/Data_Analytics.js?v=20240504g"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/Data_Analytics.js?v=20250601"></script>
 </body>
 </html>

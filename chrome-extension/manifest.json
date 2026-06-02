@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "VMS 養殖監控 - OpenCLAW",
+  "version": "1.0.0",
+  "description": "VMS 養殖監控系統側邊欄，支援 OpenCLAW 語音輸入",
+  "permissions": [
+    "sidePanel",
+    "tabs"
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "OpenCLAW 養殖助手"
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  }
+}

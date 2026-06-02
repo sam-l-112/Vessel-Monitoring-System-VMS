@@ -2,20 +2,6 @@
 
 * { box-sizing: border-box; }
 
-/* Navbar */
-.navbar {
-    background: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
-}
-.navbar-brand { font-weight: 700; color: #2563eb !important; font-size: 1.3rem; }
-.nav-link { color: #475569 !important; font-weight: 500; transition: color 0.3s; }
-.nav-link:hover { color: #2563eb !important; }
-
-/* Container */
-.container-fluid { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-
 /* Header */
 .header-card {
     background: rgba(255, 255, 255, 0.55);

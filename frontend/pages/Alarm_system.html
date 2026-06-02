@@ -7,85 +7,80 @@
     <meta name="keywords" content="示警系統,警報,養殖監控">
     <meta name="author" content="VMS Team">
 
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/Alarm_system.css">
-    <link rel="stylesheet" href="/css/Dashboard.css">
+    <link rel="stylesheet" href="/css/styles.css?v=20250601">
+    <link rel="stylesheet" href="/css/Alarm_system.css?v=20250601">
+    <link rel="stylesheet" href="/css/Dashboard.css?v=20250601">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS CDN (preflight關閉防止與Bootstrap衝突) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { corePlugins: { preflight: false } }
+    </script>
 
     <title>警報通知 - VMS 養殖監控系統</title>
 </head>
 <body>
     <div id="app">
+        <!-- Unified Header (警報頁專屬紅光底線) -->
+        <header class="vms-header d-flex align-items-center px-3 alarm-header-glow">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm d-md-none text-white-50 border-0 p-1" @click="toggleSidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="dashboard.html" class="vms-header-brand text-decoration-none">
+                    <i class="fas fa-fish me-2"></i>VMS - 養殖監控系統
+                </a>
+            </div>
+            <div class="ms-auto">
+                <button class="alarm-logout-btn" @click="logout">
+                    <i class="fas fa-sign-out-alt"></i> 登出
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile 側欄遮罩 -->
+        <div v-if="sidebarVisible" class="sidebar-backdrop d-md-none" @click="toggleSidebar"></div>
+
         <div class="container-fluid">
             <div class="row">
+                <!-- Sidebar -->
                 <div class="col-auto px-0">
-                    <div class="sidebar d-flex flex-column py-3" :class="{ show: sidebarVisible }">
-                        <div class="text-center mb-4 px-3">
-                            <h5 class="text-white fw-bold"><i class="fas fa-fish me-2"></i>VMS</h5>
-                            <small class="text-white-50">養殖監控系統</small>
-                        </div>
-                        <hr class="text-white-50 mx-3 my-2">
-                        <ul class="nav flex-column px-2">
-                            <li class="nav-item">
-                                <a class="nav-link" href="dashboard.html"><i class="fas fa-chart-pie"></i> 儀表板</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link active" href="Alarm_system.html"><i class="fas fa-bell"></i> 示警系統</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="fish_data.html"><i class="fas fa-fish"></i> 魚類數據</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="Feed_Control.html"><i class="fas fa-utensils"></i> 飼料管理</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="Data_Analytics.html"><i class="fas fa-chart-line"></i> 數據分析</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="CWA_WI.html"><i class="fas fa-cloud-sun"></i> 天氣資訊</a>
-                            </li>
-                        </ul>
-                        <hr class="text-white-50 mx-3 my-2">
-                        <div class="mt-auto px-3">
-                            <button class="btn btn-outline-light w-100 btn-sm" @click="logout">
-                                <i class="fas fa-sign-out-alt me-1"></i> 登出
-                            </button>
-                        </div>
-                    </div>
+                    <vms-sidebar active-page="alarm" :class="{ 'mobile-show': sidebarVisible }"></vms-sidebar>
                 </div>
 
+                <!-- Main Content -->
                 <div class="col ps-0">
                     <div class="main-content p-4">
+                        <!-- Header -->
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <button class="btn btn-outline-primary d-md-none" @click="toggleSidebar">
-                                <i class="fas fa-bars"></i>
-                            </button>
                             <div>
                                 <h4 class="mb-0 fw-bold"><i class="fas fa-bell text-danger me-2"></i>警報通知</h4>
                                 <small class="text-muted">即時監控養殖環境異常狀態</small>
                             </div>
-                            <button class="btn btn-primary btn-sm" @click="refreshData">
-                                <i class="fas fa-sync-alt me-1"></i> 重新整理
-                            </button>
+                            <button class="btn btn-primary btn-sm" @click="refreshData"><i class="fas fa-sync-alt me-1"></i> 重新整理</button>
                         </div>
 
+                        <!-- Loading -->
                         <div v-if="loading" class="text-center py-5">
                             <div class="loading-spinner mx-auto mb-3"></div>
                             <p class="text-muted">載入中...</p>
                         </div>
 
-                        <div v-if="error" class="error-message">
-                            <i class="fas fa-exclamation-triangle"></i> {{ error }}
-                        </div>
+                        <!-- Error -->
+                        <div v-if="error" class="error-message"><i class="fas fa-exclamation-triangle"></i> {{ error }}</div>
 
+                        <!-- Content -->
                         <template v-if="!loading">
+
+                            <!-- Alert Type Overview Header -->
                             <div class="alert-header">
                                 <div class="row align-items-center">
                                     <div class="col-md-8">
                                         <h2><i class="fas fa-shield-alt me-2"></i>示警類型總覽</h2>
-                                        <p>系統共監控 {{ alertTypes.length }} 種示警類型，目前 {{ criticalCount }} 個嚴重警報</p>
+                                        <p>系統共監控 {{ alertTypes.length }} 種示警類型</p>
                                     </div>
                                     <div class="col-md-4 text-md-end">
                                         <div class="d-flex justify-content-end gap-2">
@@ -98,39 +93,16 @@
                                 </div>
                             </div>
 
+                            <!-- Stats Grid -->
                             <div class="alert-stats-grid">
-                                <div class="card metric-card alert-total">
-                                    <div class="card-body">
-                                        <h5>總示警類型</h5>
-                                        <h2>{{ alertTypes.length }}</h2>
-                                    </div>
-                                </div>
-                                <div class="card metric-card alert-critical">
-                                    <div class="card-body">
-                                        <h5>嚴重</h5>
-                                        <h2>{{ criticalCount }}</h2>
-                                    </div>
-                                </div>
-                                <div class="card metric-card alert-high">
-                                    <div class="card-body">
-                                        <h5>高度</h5>
-                                        <h2>{{ highCount }}</h2>
-                                    </div>
-                                </div>
-                                <div class="card metric-card alert-medium">
-                                    <div class="card-body">
-                                        <h5>中度</h5>
-                                        <h2>{{ mediumCount }}</h2>
-                                    </div>
-                                </div>
-                                <div class="card metric-card alert-low">
-                                    <div class="card-body">
-                                        <h5>低度</h5>
-                                        <h2>{{ lowCount }}</h2>
-                                    </div>
-                                </div>
+                                <div class="card metric-card alert-total"><div class="card-body"><h5>總示警類型</h5><h2>{{ alertTypes.length }}</h2></div></div>
+                                <div class="card metric-card alert-critical"><div class="card-body"><h5>嚴重</h5><h2>{{ criticalCount }}</h2></div></div>
+                                <div class="card metric-card alert-high"><div class="card-body"><h5>高度</h5><h2>{{ highCount }}</h2></div></div>
+                                <div class="card metric-card alert-medium"><div class="card-body"><h5>中度</h5><h2>{{ mediumCount }}</h2></div></div>
+                                <div class="card metric-card alert-low"><div class="card-body"><h5>低度</h5><h2>{{ lowCount }}</h2></div></div>
                             </div>
 
+                            <!-- Filter Bar -->
                             <div class="filter-bar">
                                 <div class="row g-2 align-items-center">
                                     <div class="col-md-3">
@@ -152,24 +124,17 @@
                                             <option :value="20">20 筆</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-3 text-md-end">
-                                        <small class="text-muted">共 {{ filteredTypes.length }} 筆</small>
-                                    </div>
+                                    <div class="col-md-3 text-md-end"><small class="text-muted">共 {{ filteredTypes.length }} 筆</small></div>
                                 </div>
                             </div>
 
+                            <!-- Alert Types List + Chart -->
                             <div class="row">
                                 <div class="col-md-8">
                                     <div class="card">
-                                        <div class="card-header bg-white py-3">
-                                            <h5 class="mb-0 fw-bold"><i class="fas fa-list me-2 text-primary"></i>示警類型清單</h5>
-                                        </div>
+                                        <div class="card-header bg-white py-3"><h5 class="mb-0 fw-bold"><i class="fas fa-list me-2 text-primary"></i>示警類型清單</h5></div>
                                         <div class="card-body p-0">
-                                            <div v-if="paginatedTypes.length === 0" class="empty-state">
-                                                <i class="fas fa-check-circle text-success"></i>
-                                                <h4>無符合條件的示警類型</h4>
-                                                <p>嘗試調整篩選條件</p>
-                                            </div>
+                                            <div v-if="paginatedTypes.length === 0" class="empty-state"><i class="fas fa-check-circle text-success"></i><h4>無符合條件</h4><p>嘗試調整篩選條件</p></div>
                                             <div v-for="(alert, index) in paginatedTypes" :key="alert.id" :class="'alert-card severity-' + alert.severity + ' p-3 border-bottom'" style="cursor:pointer">
                                                 <div class="d-flex justify-content-between align-items-start">
                                                     <div class="flex-grow-1">
@@ -185,153 +150,39 @@
                                         </div>
                                         <div class="card-footer bg-white d-flex justify-content-between align-items-center" v-if="totalPages > 1">
                                             <small class="text-muted">第 {{ currentPage }} / {{ totalPages }} 頁</small>
-                                            <nav>
-                                                <ul class="pagination pagination-sm mb-0">
-                                                    <li class="page-item" :class="{ disabled: currentPage <= 1 }">
-                                                        <button class="page-link" @click="currentPage--">&laquo;</button>
-                                                    </li>
-                                                    <li class="page-item" v-for="p in totalPages" :key="p" :class="{ active: p === currentPage }">
-                                                        <button class="page-link" @click="currentPage = p">{{ p }}</button>
-                                                    </li>
-                                                    <li class="page-item" :class="{ disabled: currentPage >= totalPages }">
-                                                        <button class="page-link" @click="currentPage++">&raquo;</button>
-                                                    </li>
-                                                </ul>
-                                            </nav>
+                                            <nav><ul class="pagination pagination-sm mb-0">
+                                                <li class="page-item" :class="{ disabled: currentPage <= 1 }"><button class="page-link" @click="currentPage--">&laquo;</button></li>
+                                                <li class="page-item" v-for="p in totalPages" :key="p" :class="{ active: p === currentPage }"><button class="page-link" @click="currentPage = p">{{ p }}</button></li>
+                                                <li class="page-item" :class="{ disabled: currentPage >= totalPages }"><button class="page-link" @click="currentPage++">&raquo;</button></li>
+                                            </ul></nav>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-4">
                                     <div class="card mb-3">
-                                        <div class="card-header bg-white py-3">
-                                            <h5 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>severity 分佈</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <canvas id="severityChart" height="250"></canvas>
-                                        </div>
+                                        <div class="card-header bg-white py-3"><h5 class="mb-0 fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>severity 分佈</h5></div>
+                                        <div class="card-body"><canvas id="severityChart" height="250"></canvas></div>
                                     </div>
-
                                     <div class="card">
-                                        <div class="card-header bg-white py-3">
-                                            <h5 class="mb-0 fw-bold"><i class="fas fa-clock me-2 text-primary"></i>最近活動</h5>
-                                        </div>
+                                        <div class="card-header bg-white py-3"><h5 class="mb-0 fw-bold"><i class="fas fa-clock me-2 text-primary"></i>最近活動</h5></div>
                                         <div class="card-body p-3">
-                                            <div v-if="recentActivities.length === 0" class="text-center text-muted py-3">
-                                                <small>暫無活動記錄</small>
-                                            </div>
+                                            <div v-if="recentActivities.length === 0" class="text-center text-muted py-3"><small>暫無活動記錄</small></div>
                                             <div v-for="activity in recentActivities" :key="activity.id" class="d-flex align-items-start gap-2 mb-2 pb-2 border-bottom">
-                                                <div class="activity-icon mt-1">
-                                                    <span :class="'badge severity-' + activity.severity">{{ activity.severity }}</span>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <small class="fw-bold d-block">{{ activity.name }}</small>
-                                                    <small class="text-muted">{{ activity.time }}</small>
-                                                </div>
+                                                <div class="activity-icon mt-1"><span :class="'badge severity-' + activity.severity">{{ activity.severity }}</span></div>
+                                                <div class="flex-grow-1"><small class="fw-bold d-block">{{ activity.name }}</small><small class="text-muted">{{ activity.time }}</small></div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="row mt-4">
-                                <div class="col-12">
-                                    <div class="card">
-                                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                                            <h5 class="mb-0 fw-bold"><i class="fas fa-satellite me-2 text-danger"></i>NCDR 災防示警即時訊息</h5>
-                                            <small class="text-muted">{{ filteredMessages.length }} 筆訊息</small>
-                                        </div>
-                                        <div class="card-body p-0">
-                                            <div v-if="alertMessagesLoading" class="text-center py-4">
-                                                <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
-                                                <small class="ms-2 text-muted">載入 NCDR 示警訊息中...</small>
-                                            </div>
-                                            <div v-else-if="alertMessagesError" class="error-message m-3">
-                                                <i class="fas fa-exclamation-triangle"></i> {{ alertMessagesError }}
-                                            </div>
-                                            <div v-else>
-                                                <div class="filter-bar mx-3 mt-3 mb-0">
-                                                    <div class="row g-2 align-items-center">
-                                                        <div class="col-md-3">
-                                                            <input type="text" class="form-control form-control-sm" placeholder="行政區代碼..." v-model="ncdrCountyCode">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <input type="text" class="form-control form-control-sm" placeholder="示警代碼 (capCode)..." v-model="ncdrCapCode">
-                                                        </div>
-                                                        <div class="col-md-2">
-                                                            <select class="form-select form-select-sm" v-model="ncdrPageSize">
-                                                                <option :value="5">5 筆</option>
-                                                                <option :value="10">10 筆</option>
-                                                                <option :value="25">25 筆</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-md-4 text-md-end">
-                                                            <button class="btn btn-sm btn-outline-danger" @click="loadAlertMessages">
-                                                                <i class="fas fa-sync-alt me-1"></i>重新取得
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div v-if="filteredMessages.length === 0" class="empty-state">
-                                                    <i class="fas fa-check-circle text-success"></i>
-                                                    <h4>暫無示警訊息</h4>
-                                                    <p>目前沒有符合條件的 NCDR 災防示警訊息</p>
-                                                </div>
-
-                                                <div v-else class="table-responsive">
-                                                    <table class="table table-hover mb-0">
-                                                        <thead>
-                                                            <tr>
-                                                                <th style="width:140px">發送時間</th>
-                                                                <th style="width:80px">類型</th>
-                                                                <th>標題</th>
-                                                                <th style="width:70px">severity</th>
-                                                                <th style="width:70px">緊急度</th>
-                                                                <th style="width:100px">地區</th>
-                                                                <th style="width:50px"></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <template v-for="msg in paginatedMessages" :key="msg.id">
-                                                                <tr :class="'alert-card ' + getSeverityClass(msg.severity)" style="cursor:pointer" @click="toggleExpand(msg)">
-                                                                    <td><small>{{ formatSentTime(msg.sent) }}</small></td>
-                                                                    <td><small>{{ msg.category || msg.msgType || '-' }}</small></td>
-                                                                    <td><small class="fw-bold">{{ msg.headline || msg.event || '-' }}</small></td>
-                                                                    <td><span :class="'severity-badge ' + getSeverityClass(msg.severity)">{{ getSeverityLabel(msg.severity) }}</span></td>
-                                                                    <td><small>{{ getUrgencyLabel(msg.urgency) }}</small></td>
-                                                                    <td><small>{{ getAlertAreas(msg).slice(0, 2).map(a => a.areaDesc).join(', ') || '-' }}</small></td>
-                                                                    <td><i :class="expandedAlert === msg.id ? 'fas fa-chevron-up text-muted' : 'fas fa-chevron-down text-muted'"></i></td>
-                                                                </tr>
-                                                                <tr v-if="expandedAlert === msg.id">
-                                                                    <td colspan="7" class="bg-light p-3">
-                                                                        <div class="row">
-                                                                            <div class="col-md-8">
-                                                                                <h6 class="fw-bold mb-2">{{ msg.headline || msg.event }}</h6>
-                                                                                <p class="mb-2" style="white-space:pre-wrap">{{ msg.description }}</p>
-                                                                                <div v-if="msg.instruction" class="alert alert-warning p-2 mb-0">
-                                                                                    <i class="fas fa-exclamation-circle me-1"></i>
-                                                                                    <strong>應變指引：</strong>{{ msg.instruction }}
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="col-md-4">
-                                                                                <small class="text-muted d-block"><strong>發送單位：</strong>{{ msg.sender || '-' }}</small>
-                                                                                <small class="text-muted d-block"><strong>示警代碼：</strong>{{ msg.capCode || '-' }}</small>
-                                                                                <small class="text-muted d-block"><strong>確定性：</strong>{{ msg.certainty || '-' }}</small>
-                                                                                <small class="text-muted d-block"><strong>影響地區：</strong>{{ getAlertAreas(msg).map(a => a.areaDesc).join('、') || '-' }}</small>
-                                                                                <small v-if="msg.web" class="text-muted d-block">
-                                                                                    <strong>參考連結：</strong>
-                                                                                    <a :href="msg.web" target="_blank" class="text-primary">{{ msg.web }}</a>
-                                                                                </small>
-                                                                            </div>
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
+                            <!-- CWA Alerts Tab Panel -->
                             <div class="row mt-4">
                                 <div class="col-12">
                                     <div class="card">
                                         <div class="card-header bg-white py-3">
-                                            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                            <ul class="nav nav-tabs card-header-tabs">
                                                 <li class="nav-item"><a class="nav-link" :class="{ active: cwaTab === 'typhoon' }" href="#" @click.prevent="switchCWATab('typhoon')"><i class="fas fa-wind me-1"></i>颱風警報</a></li>
                                                 <li class="nav-item"><a class="nav-link" :class="{ active: cwaTab === 'hightemp' }" href="#" @click.prevent="switchCWATab('hightemp')"><i class="fas fa-temperature-high me-1"></i>高溫資訊</a></li>
                                                 <li class="nav-item"><a class="nav-link" :class="{ active: cwaTab === 'tsunami' }" href="#" @click.prevent="switchCWATab('tsunami')"><i class="fas fa-water me-1"></i>海嘯資訊</a></li>
@@ -343,26 +194,196 @@
                                             <div v-else-if="cwaError" class="alert alert-warning m-3"><i class="fas fa-exclamation-triangle"></i> {{ cwaError }}</div>
                                             <div v-else-if="cwaAlerts.length === 0" class="empty-state"><i class="fas fa-check-circle text-success"></i><h4>暫無警報</h4><p>目前無 {{ cwaTabLabel(cwaTab) }} 資料</p></div>
                                             <div v-else>
-                                                <div v-for="(a, i) in cwaAlerts" :key="i" class="p-3 border-bottom">
-                                                    <div class="d-flex align-items-start gap-2 mb-2">
-                                                        <span v-if="a._severity" :class="'severity-badge ' + getSeverityClass(a._severity)">{{ getSeverityLabel(a._severity) }}</span>
-                                                        <span v-if="a.category" class="badge bg-secondary me-1">{{ a.category }}</span>
-                                                        <strong class="flex-grow-1">{{ a._headline || a.event || '-' }}</strong>
-                                                        <small v-if="a._effective" class="text-muted">{{ formatSentTime(a._effective) }}</small>
+                                                <div v-for="(a, i) in cwaAlerts" :key="i" class="cwa-alert-card">
+                                                    <!-- === 颱風警報卡片 === -->
+                                                    <template v-if="cwaTab === 'typhoon'">
+                                                        <div class="cwa-card-header">
+                                                            <span class="typhoon-category-badge" v-if="a.cwaTyphoonCategory">{{ a.cwaTyphoonCategory }}</span>
+                                                            <span class="typhoon-name" v-if="a.typhoonName">{{ a.typhoonName }}</span>
+                                                            <span v-if="a._severity" :class="'severity-badge ' + getSeverityClass(a._severity)" style="margin-left:auto">{{ getSeverityLabel(a._severity) }}</span>
+                                                        </div>
+                                                        <div class="cwa-card-body">
+                                                            <div class="cwa-info-grid">
+                                                                <div class="cwa-info-item" v-if="a.currentPosition">
+                                                                    <i class="fas fa-map-pin"></i>
+                                                                    <span class="cwa-label">目前位置</span>
+                                                                    <span class="cwa-value">{{ a.currentPosition }}</span>
+                                                                </div>
+                                                                <div class="cwa-info-item" v-if="a.direction || a.speed">
+                                                                    <i class="fas fa-location-arrow"></i>
+                                                                    <span class="cwa-label">移動方向/速度</span>
+                                                                    <span class="cwa-value">{{ a.direction || '-' }} {{ a.speed ? '，時速 ' + a.speed + ' 公里' : '' }}</span>
+                                                                </div>
+                                                                <div class="cwa-info-item" v-if="a.maxWindSpeed">
+                                                                    <i class="fas fa-wind"></i>
+                                                                    <span class="cwa-label">近中心最大風速</span>
+                                                                    <span class="cwa-value text-danger fw-bold">{{ a.maxWindSpeed }} 公尺/秒</span>
+                                                                </div>
+                                                                <div class="cwa-info-item" v-if="a.gust">
+                                                                    <i class="fas fa-bolt"></i>
+                                                                    <span class="cwa-label">瞬間最大陣風</span>
+                                                                    <span class="cwa-value">{{ a.gust }} 公尺/秒</span>
+                                                                </div>
+                                                                <div class="cwa-info-item" v-if="a.radius7">
+                                                                    <i class="fas fa-circle-notch"></i>
+                                                                    <span class="cwa-label">七級暴風半徑</span>
+                                                                    <span class="cwa-value">{{ a.radius7 }} 公里</span>
+                                                                </div>
+                                                                <div class="cwa-info-item" v-if="a.radius10">
+                                                                    <i class="fas fa-circle"></i>
+                                                                    <span class="cwa-label">十級暴風半徑</span>
+                                                                    <span class="cwa-value">{{ a.radius10 }} 公里</span>
+                                                                </div>
+                                                                <div class="cwa-info-item" v-if="a.pressure">
+                                                                    <i class="fas fa-compress-arrows-alt"></i>
+                                                                    <span class="cwa-label">中心氣壓</span>
+                                                                    <span class="cwa-value">{{ a.pressure }} 百帕</span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="cwa-time-row" v-if="a._effective || a.expires">
+                                                                <i class="far fa-clock"></i>
+                                                                <span>警報期間：{{ formatSentTime(a._effective) }} ~ {{ formatSentTime(a.expires) }}</span>
+                                                            </div>
+                                                            <div class="cwa-area-row" v-if="a._areaStr">
+                                                                <i class="fas fa-exclamation-triangle text-danger"></i>
+                                                                <strong>影響地區：</strong>{{ a._areaStr }}
+                                                            </div>
+                                                            <div class="cwa-desc" v-if="a.headline || a.description" style="white-space:pre-wrap">{{ a.headline ? '【' + a.headline + '】' : '' }}{{ a.description ? '\n' + a.description : '' }}</div>
+                                                            <div v-if="a.instruction" class="cwa-instruction">
+                                                                <i class="fas fa-shield-alt"></i>
+                                                                <strong>應變指引：</strong>{{ a.instruction }}
+                                                            </div>
+                                                        </div>
+                                                    </template>
+
+                                                    <!-- === 高溫資訊卡片 === -->
+                                                    <template v-else-if="cwaTab === 'hightemp'">
+                                                        <div class="cwa-card-header">
+                                                            <span :class="'severity-badge ' + getSeverityClass(a._severity)" v-if="a._severity">{{ getSeverityLabel(a._severity) }}</span>
+                                                            <strong class="flex-grow-1" v-if="a._headline || a.event">{{ a._headline || a.event }}</strong>
+                                                            <small v-if="a._effective" class="text-muted">{{ formatSentTime(a._effective) }}</small>
+                                                        </div>
+                                                        <div class="cwa-card-body">
+                                                            <div class="cwa-area-row" v-if="a._areaStr">
+                                                                <i class="fas fa-map-marker-alt text-warning"></i>
+                                                                <strong>影響地區：</strong>{{ a._areaStr }}
+                                                            </div>
+                                                            <div v-if="a.description" class="cwa-desc" style="white-space:pre-wrap">{{ a.description }}</div>
+                                                            <div v-if="a.instruction" class="cwa-instruction"><i class="fas fa-shield-alt"></i><strong>應變指引：</strong>{{ a.instruction }}</div>
+                                                        </div>
+                                                    </template>
+
+                                                    <!-- === 海嘯資訊卡片 === -->
+                                                    <template v-else-if="cwaTab === 'tsunami'">
+                                                        <div class="cwa-card-header">
+                                                            <span :class="'severity-badge ' + getSeverityClass(a._severity)" v-if="a._severity">{{ getSeverityLabel(a._severity) }}</span>
+                                                            <strong class="flex-grow-1" v-if="a._headline || a.event">{{ a._headline || a.event }}</strong>
+                                                            <small v-if="a._effective" class="text-muted">{{ formatSentTime(a._effective) }}</small>
+                                                        </div>
+                                                        <div class="cwa-card-body">
+                                                            <div class="cwa-area-row" v-if="a._areaStr">
+                                                                <i class="fas fa-water text-info"></i>
+                                                                <strong>影響地區：</strong>{{ a._areaStr }}
+                                                            </div>
+                                                            <div v-if="a.description" class="cwa-desc" style="white-space:pre-wrap">{{ a.description }}</div>
+                                                            <div v-if="a.instruction" class="cwa-instruction"><i class="fas fa-shield-alt"></i><strong>應變指引：</strong>{{ a.instruction }}</div>
+                                                        </div>
+                                                    </template>
+
+                                                    <!-- === 觀測資料卡片 === -->
+                                                    <template v-else-if="cwaTab === 'station'">
+                                                        <div class="cwa-card-header">
+                                                            <i class="fas fa-broadcast-tower text-primary me-2"></i>
+                                                            <strong>{{ a._headline || a._stationID || '觀測站' }}</strong>
+                                                            <small v-if="a._effective" class="text-muted ms-auto">{{ formatSentTime(a._effective) }}</small>
+                                                        </div>
+                                                        <div class="cwa-card-body">
+                                                            <div class="cwa-station-grid">
+                                                                <div class="cwa-station-item">
+                                                                    <i class="fas fa-thermometer-half text-danger"></i>
+                                                                    <span class="cwa-label">溫度</span>
+                                                                    <span class="cwa-value-lg">{{ a._temperature }}<small>°C</small></span>
+                                                                </div>
+                                                                <div class="cwa-station-item">
+                                                                    <i class="fas fa-tint text-primary"></i>
+                                                                    <span class="cwa-label">濕度</span>
+                                                                    <span class="cwa-value-lg">{{ a._humidity }}<small>%</small></span>
+                                                                </div>
+                                                                <div class="cwa-station-item">
+                                                                    <i class="fas fa-wind text-secondary"></i>
+                                                                    <span class="cwa-label">風速</span>
+                                                                    <span class="cwa-value-lg">{{ a._wind }}<small>m/s</small></span>
+                                                                </div>
+                                                                <div class="cwa-station-item" v-if="a._pressure">
+                                                                    <i class="fas fa-compress-arrows-alt text-info"></i>
+                                                                    <span class="cwa-label">氣壓</span>
+                                                                    <span class="cwa-value-lg">{{ a._pressure }}<small>hPa</small></span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+
+                                                    <!-- 參考連結 (共用) -->
+                                                    <div v-if="a.web" class="cwa-card-footer">
+                                                        <a :href="a.web" target="_blank" class="cwa-ref-link">
+                                                            <i class="fas fa-external-link-alt me-1"></i>中央氣象署詳細資訊
+                                                        </a>
                                                     </div>
-                                                    <p class="mb-1 small text-muted" style="white-space:pre-wrap">{{ a.description || a.ReportContent || a.Content || '' }}</p>
-                                                    <div class="d-flex flex-wrap gap-3">
-                                                        <small v-if="a._areaStr" class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>{{ a._areaStr }}</small>
-                                                        <small v-if="a.senderName" class="text-muted"><i class="fas fa-building me-1"></i>{{ a.senderName }}</small>
-                                                        <small v-if="a.web" class="text-primary"><a :href="a.web" target="_blank"><i class="fas fa-external-link-alt me-1"></i>參考連結</a></small>
-                                                    </div>
-                                                    <div v-if="a.instruction" class="alert alert-warning p-2 mt-2 mb-0 small"><i class="fas fa-info-circle me-1"></i>{{ a.instruction }}</div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- NCDR Alert Messages -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0 fw-bold"><i class="fas fa-satellite me-2 text-danger"></i>NCDR 災防示警即時訊息</h5>
+                                            <small class="text-muted">{{ filteredMessages.length }} 筆訊息</small>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <div v-if="alertMessagesLoading" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div><small class="ms-2 text-muted">載入 NCDR 示警訊息中...</small></div>
+                                            <div v-else-if="alertMessagesError" class="error-message m-3"><i class="fas fa-exclamation-triangle"></i> {{ alertMessagesError }}</div>
+                                            <div v-else-if="filteredMessages.length === 0" class="empty-state"><i class="fas fa-check-circle text-success"></i><h4>暫無 NCDR 示警訊息</h4><p>尚無 NCDR API key 或目前無災防示警</p></div>
+                                            <div v-else class="table-responsive">
+                                                <table class="table table-hover mb-0">
+                                                    <thead><tr><th style="width:140px">發送時間</th><th style="width:80px">類型</th><th>標題</th><th style="width:70px">severity</th><th style="width:70px">緊急度</th><th style="width:100px">地區</th></tr></thead>
+                                                    <tbody>
+                                                        <template v-for="msg in paginatedMessages" :key="msg.id">
+                                                            <tr :class="'alert-card ' + getSeverityClass(msg.severity)" style="cursor:pointer" @click="toggleExpand(msg)">
+                                                                <td><small>{{ formatSentTime(msg.sent) }}</small></td>
+                                                                <td><small>{{ msg.category || msg.msgType || '-' }}</small></td>
+                                                                <td><small class="fw-bold">{{ msg.headline || msg.event || '-' }}</small></td>
+                                                                <td><span :class="'severity-badge ' + getSeverityClass(msg.severity)">{{ getSeverityLabel(msg.severity) }}</span></td>
+                                                                <td><small>{{ getUrgencyLabel(msg.urgency) }}</small></td>
+                                                                <td><small>{{ getAlertAreas(msg).slice(0,2).map(a => a.areaDesc).join(', ') || '-' }}</small></td>
+                                                            </tr>
+                                                            <tr v-if="expandedAlert === msg.id">
+                                                                <td colspan="6" class="bg-light p-3">
+                                                                    <div class="row"><div class="col-md-8"><h6 class="fw-bold mb-2">{{ msg.headline || msg.event }}</h6><p class="mb-2" style="white-space:pre-wrap">{{ msg.description }}</p><div v-if="msg.instruction" class="alert alert-warning p-2 mb-0"><i class="fas fa-exclamation-circle me-1"></i><strong>應變指引：</strong>{{ msg.instruction }}</div></div>
+                                                                    <div class="col-md-4"><small class="text-muted d-block"><strong>發送單位：</strong>{{ msg.sender || '-' }}</small><small class="text-muted d-block"><strong>示警代碼：</strong>{{ msg.capCode || '-' }}</small><small class="text-muted d-block"><strong>確定性：</strong>{{ msg.certainty || '-' }}</small><small class="text-muted d-block"><strong>影響地區：</strong>{{ getAlertAreas(msg).map(a => a.areaDesc).join('、') || '-' }}</small><small v-if="msg.web" class="text-muted d-block"><strong>參考連結：</strong><a :href="msg.web" target="_blank" class="text-primary">{{ msg.web }}</a></small></div></div>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-white d-flex justify-content-between align-items-center" v-if="ncdrTotalPages > 1">
+                                            <small class="text-muted">第 {{ ncdrCurrentPage }} / {{ ncdrTotalPages }} 頁</small>
+                                            <nav><ul class="pagination pagination-sm mb-0">
+                                                <li class="page-item" :class="{ disabled: ncdrCurrentPage <= 1 }"><button class="page-link" @click="ncdrCurrentPage--">&laquo;</button></li>
+                                                <li class="page-item" v-for="p in ncdrTotalPages" :key="p" :class="{ active: p === ncdrCurrentPage }"><button class="page-link" @click="ncdrCurrentPage = p">{{ p }}</button></li>
+                                                <li class="page-item" :class="{ disabled: ncdrCurrentPage >= ncdrTotalPages }"><button class="page-link" @click="ncdrCurrentPage++">&raquo;</button></li>
+                                            </ul></nav>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </template>
                     </div>
                 </div>
@@ -374,6 +395,7 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js/Alarm_system.js"></script>
+    <script src="/js/sidebar.js?v=20250601"></script>
+    <script src="/js/Alarm_system.js?v=20250601"></script>
 </body>
 </html>

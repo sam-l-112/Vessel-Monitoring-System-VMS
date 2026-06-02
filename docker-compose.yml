@@ -9,7 +9,7 @@ services:
       MARIADB_USER: vms_user
       MARIADB_PASSWORD: vms_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ./logs/mariadb:/var/log/mysql
@@ -42,9 +42,11 @@ services:
     image: nginx:latest
     container_name: vms-nginx
     ports:
-      - "8080:80"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./infra/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro
       - ./frontend:/usr/share/nginx/html:ro
       - ./logs/nginx:/var/log/nginx
     depends_on:
@@ -56,3 +58,6 @@ services:
 networks:
   vms-network:
     driver: bridge
+
+volumes:
+  db_data:

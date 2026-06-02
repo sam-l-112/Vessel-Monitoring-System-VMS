@@ -2,9 +2,10 @@ const API_BASE = "";
 
 const { createApp } = Vue;
 
-createApp({
+const app = createApp({
     data() {
         return {
+            sidebarVisible: false,
             fishData: [],
             loading: false,
             error: null,
@@ -23,6 +24,7 @@ createApp({
         this.loadFishData();
     },
     methods: {
+        toggleSidebar() { this.sidebarVisible = !this.sidebarVisible; },
         async makeAPIRequest(url, method = 'GET', data = null) {
             try {
                 const config = {
@@ -134,7 +136,10 @@ createApp({
         logout() {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            window.location.href = '/pages/index.html';
+            window.location.href = 'login.html';
         }
     }
-}).mount('#app');
+});
+
+app.component('vms-sidebar', VmsSidebar);
+app.mount('#app');

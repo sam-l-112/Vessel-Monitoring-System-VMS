@@ -531,6 +531,30 @@
     cursor: not-allowed;
 }
 
+.openclaw-voice-btn {
+    background: #2d5a8e !important;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.openclaw-voice-btn:hover {
+    background: #3a6faa !important;
+}
+
+.openclaw-voice-btn.recording {
+    background: #e53e3e !important;
+    animation: voice-pulse 1.2s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.6);
+}
+
+@keyframes voice-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 0 12px rgba(229, 62, 62, 0);
+    }
+}
+
 /* Modal Styles */
 .modal-overlay {
     position: fixed;
@@ -585,4 +609,66 @@
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+}
+
+/* ================================================================
+   Glassmorphism Dashboard — KPI / Chart / Test Mode Styles
+   ================================================================ */
+
+/* Chart canvas sizing inside glass cards */
+.chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 160px;
+    margin: 0 auto;
+}
+.chart-wrap canvas {
+    max-height: 160px;
+}
+
+/* Weather placeholder grid */
+.weather-placeholder-card {
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    padding: 1rem;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+/* Test mode banner */
+.test-mode-banner {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    color: #1e293b;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Metric value text */
+.metric-value-lg {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+.metric-label {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+@media (max-width: 767px) {
+    .metric-value-lg { font-size: 1.5rem; }
 }

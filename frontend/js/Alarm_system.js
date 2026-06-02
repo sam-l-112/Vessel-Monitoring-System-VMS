@@ -1,6 +1,6 @@
 const { createApp } = Vue;
 
-createApp({
+const app = createApp({
     data() {
         return {
             sidebarVisible: false,
@@ -35,16 +35,18 @@ createApp({
         };
     },
     computed: {
-        criticalCount() { return this.alertTypes.filter(a => a.severity === 'critical').length; },
-        highCount() { return this.alertTypes.filter(a => a.severity === 'high').length; },
-        mediumCount() { return this.alertTypes.filter(a => a.severity === 'medium').length; },
-        lowCount() { return this.alertTypes.filter(a => a.severity === 'low').length; },
+        criticalCount() { return (this.alertTypes||[]).filter(a => a.severity === 'critical').length; },
+        highCount() { return (this.alertTypes||[]).filter(a => a.severity === 'high').length; },
+        mediumCount() { return (this.alertTypes||[]).filter(a => a.severity === 'medium').length; },
+        lowCount() { return (this.alertTypes||[]).filter(a => a.severity === 'low').length; },
         filteredTypes() {
-            return this.alertTypes.filter(a => {
+            return (this.alertTypes || []).filter(a => {
                 if (this.severityFilter && a.severity !== this.severityFilter) return false;
                 if (this.searchQuery) {
                     const q = this.searchQuery.toLowerCase();
-                    return a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q);
+                    const name = (a.name || '').toLowerCase();
+                    const desc = (a.description || '').toLowerCase();
+                    return name.includes(q) || desc.includes(q);
                 }
                 return true;
             });
@@ -149,7 +151,8 @@ createApp({
                     params: { apikey: this.apikey, dataset, limit: 30 }, timeout: 15000
                 });
                 if (response.data && (response.data.success === 'true' || response.data.success === true)) {
-                    const records = (response.data.result && response.data.result.records) || {};
+                    // CWA records 可能在頂層 (records) 或在 result.records 內
+                    const records = response.data.records || (response.data.result && response.data.result.records) || {};
                     this.cwaAlerts = this.flattenCWARecords(this.cwaTab, records);
                 } else {
                     this.cwaAlerts = [];
@@ -162,31 +165,85 @@ createApp({
         },
         flattenCWARecords(type, records) {
             let items = [];
-            const keys = Object.keys(records);
+            const keys = Object.keys(records || {});
             for (const key of keys) {
                 const val = records[key];
-                if (Array.isArray(val)) {
-                    val.forEach(item => {
-                        const flat = { _type: key };
-                        if (item.info) Object.assign(flat, item.info);
-                        Object.keys(item).forEach(k => { if (k !== 'info' && typeof item[k] !== 'object') flat[k] = item[k]; });
+                if (!Array.isArray(val)) {
+                    if (typeof val === 'object' && val !== null) {
+                        items.push({ _type: key, ...val });
+                    }
+                    continue;
+                }
+                val.forEach(item => {
+                    if (type === 'station' && item.station && item.stationObsTimes) {
+                        // 觀測資料: 展開每個 stationObsTime
+                        const stn = item.station;
+                        const times = (item.stationObsTimes.stationObsTime || []);
+                        times.forEach(t => {
+                            const we = t.weatherElements || {};
+                            items.push({
+                                _type: 'stationObs',
+                                _headline: stn.StationName || stn.stationName || '-',
+                                _stationID: stn.StationID || '',
+                                _temperature: we.AirTemperature || '-',
+                                _humidity: we.RelativeHumidity || '-',
+                                _wind: we.WindSpeed || '-',
+                                _pressure: we.AirPressure || '-',
+                                _effective: t.obsTime?.DateTime || '',
+                                _areaStr: stn.StationName || ''
+                            });
+                        });
+                    } else if (key === 'info' || item.category || item.event) {
+                        // 颱風/高溫/海嘯: items 自身就是 info 物件
+                        const flat = { _type: key, ...item };
                         flat._areas = [];
-                        if (item.info && item.info.area) {
-                            item.info.area.forEach(a => {
-                                flat._areas.push(a.CountyName || a.TownName || a.areaDesc || JSON.stringify(a).slice(0,30));
+                        if (item.area) {
+                            item.area.forEach(a => {
+                                flat._areas.push(a.CountyName || a.TownName || a.areaDesc || '');
                             });
                         }
-                        flat._areaStr = flat._areas.join('、');
-                        flat._headline = flat.headline || item.headline || flat.event || '';
+                        flat._areaStr = flat._areas.filter(Boolean).join('、');
+                        flat._headline = flat.headline || flat.event || '';
                         flat._severity = flat.severity || '';
-                        flat._effective = flat.effective || '';
+                        flat._effective = flat.effective || flat.onset || '';
+                        // 提取颱風專屬欄位（CWA API 可能用不同 key）
+                        flat.typhoonName = flat.typhoonName || flat.TyphoonName || '';
+                        flat.cwaTyphoonCategory = flat.cwaTyphoonCategory || flat.CwaTyphoonCategory || flat.TyphoonCategory || '';
+                        flat.currentPosition = flat.currentPosition || flat.CurrentPosition || flat.position || '';
+                        flat.maxWindSpeed = flat.maxWindSpeed || flat.MaxWindSpeed || flat.CenterMaxWindSpeed || '';
+                        flat.gust = flat.gust || flat.Gust || flat.CenterGustWindSpeed || '';
+                        flat.radius7 = flat.radius7 || flat.Radius7 || '';
+                        flat.radius10 = flat.radius10 || flat.Radius10 || '';
+                        flat.direction = flat.direction || flat.Direction || flat.movementDirection || '';
+                        flat.speed = flat.speed || flat.Speed || flat.movementSpeed || '';
+                        flat.pressure = flat.pressure || flat.Pressure || flat.CenterPressure || '';
                         items.push(flat);
-                    });
-                } else if (typeof val === 'object' && val !== null) {
-                    const flat = { _type: key };
-                    Object.assign(flat, val);
-                    items.push(flat);
-                }
+                    } else if (item.info) {
+                        // 備用: 部分 API info 包在 item.info 裡
+                        const flat = { _type: key, ...item.info };
+                        flat._areas = [];
+                        if (item.info.area) {
+                            item.info.area.forEach(a => {
+                                flat._areas.push(a.CountyName || a.TownName || a.areaDesc || '');
+                            });
+                        }
+                        flat._areaStr = flat._areas.filter(Boolean).join('、');
+                        flat._headline = flat.headline || flat.event || '';
+                        flat._severity = flat.severity || '';
+                        flat._effective = flat.effective || flat.onset || '';
+                        items.push(flat);
+                    } else {
+                        // Generic fallback
+                        const flat = { _type: key };
+                        Object.keys(item).forEach(k => {
+                            if (typeof item[k] !== 'object' || k === 'info') flat[k] = item[k];
+                        });
+                        flat._headline = flat.headline || flat.event || '';
+                        flat._severity = flat.severity || '';
+                        flat._effective = flat.effective || flat.onset || '';
+                        items.push(flat);
+                    }
+                });
             }
             return items;
         },
@@ -196,7 +253,7 @@ createApp({
             return m[t] || t;
         },
         generateRecentActivities() {
-            this.recentActivities = this.alertTypes.slice(0,5).map(a => ({
+            this.recentActivities = (this.alertTypes || []).slice(0,5).map(a => ({
                 id: a.id, name: a.name, severity: a.severity,
                 time: a.severity==='critical'?'即時':a.severity==='high'?'5分鐘前':a.severity==='medium'?'30分鐘前':'1小時前'
             }));
@@ -227,4 +284,7 @@ createApp({
         this.loadAlertMessages();
         this.loadCWAAlerts();
     }
-}).mount('#app');
+});
+
+app.component('vms-sidebar', VmsSidebar);
+app.mount('#app');

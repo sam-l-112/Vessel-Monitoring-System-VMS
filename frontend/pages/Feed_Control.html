@@ -17,6 +17,12 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { corePlugins: { preflight: false } }
+    </script>
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -24,37 +30,42 @@
 </head>
 <body>
     <div id="app" class="fade-in">
-        <!-- Navigation -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-            <div class="container-fluid">
-                <a class="navbar-brand d-flex align-items-center" href="#">
-                    <i class="fas fa-seedling me-2"></i>
-                    VMS - 飼料管理
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
+        <!-- Unified Header -->
+        <header class="vms-header d-flex align-items-center px-3">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm d-md-none text-white-50 border-0 p-1" @click="toggleSidebar">
+                    <i class="fas fa-bars"></i>
                 </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="dashboard.html">
-                                <i class="fas fa-home me-1"></i>回首頁
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @click="logout">
-                                <i class="fas fa-sign-out-alt me-1"></i>登出
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                <a href="dashboard.html" class="vms-header-brand text-decoration-none">
+                    <i class="fas fa-fish me-2"></i>VMS - 養殖監控系統
+                </a>
             </div>
-        </nav>
+            <div class="ms-auto">
+                <button class="vms-header-logout-btn" @click="logout">
+                    <i class="fas fa-sign-out-alt me-1"></i>登出
+                </button>
+            </div>
+        </header>
 
-        <div class="container-fluid py-4">
+        <!-- Mobile 側欄遮罩 -->
+        <div v-if="sidebarVisible" class="sidebar-backdrop d-md-none" @click="toggleSidebar"></div>
+
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <div class="col-auto px-0">
+                    <vms-sidebar active-page="feed" :class="{ 'mobile-show': sidebarVisible }"></vms-sidebar>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col ps-0">
+                    <div class="main-content p-4">
+
             <!-- Header -->
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="fas fa-seedling me-2"></i>飼料管理系統</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <h1 class="h2"><i class="fas fa-seedling me-2"></i>飼料管理系統</h1>
+                </div>
                 <div class="btn-toolbar mb-2 mb-md-0">
                     <div class="btn-group me-2">
                         <button type="button" class="btn btn-sm btn-outline-primary" @click="loadFeedData">
@@ -156,6 +167,8 @@
                             </button>
                         </div>
                     </form>
+            </div>
+        </div>
                 </div>
             </div>
         </div>
@@ -167,6 +180,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Application JavaScript -->
+    <script src="/js/sidebar.js"></script>
     <script src="/js/Feed_Control.js?v=20240504g"></script>
 </body>
 </html>
