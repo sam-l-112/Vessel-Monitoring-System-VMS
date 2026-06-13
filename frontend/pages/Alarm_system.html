@@ -9,7 +9,6 @@
 
     <link rel="stylesheet" href="/css/styles.css?v=20250601">
     <link rel="stylesheet" href="/css/Alarm_system.css?v=20250601">
-    <link rel="stylesheet" href="/css/Dashboard.css?v=20250601">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,6 +19,7 @@
         tailwind.config = { corePlugins: { preflight: false } }
     </script>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>警報通知 - VMS 養殖監控系統</title>
 </head>
 <body>
@@ -47,9 +47,9 @@
         <div class="container-fluid">
             <div class="row">
                 <!-- Sidebar -->
-                <div class="col-auto px-0">
+                <nav class="col-auto px-0">
                     <vms-sidebar active-page="alarm" :class="{ 'mobile-show': sidebarVisible }"></vms-sidebar>
-                </div>
+                </nav>
 
                 <!-- Main Content -->
                 <div class="col ps-0">
@@ -395,7 +395,6 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/sidebar.js?v=20250601"></script>
     <script src="/js/Alarm_system.js?v=20250601"></script>
 </body>

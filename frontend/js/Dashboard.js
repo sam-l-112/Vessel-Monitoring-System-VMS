@@ -47,7 +47,7 @@
                 voiceListening: false,
                 voicePermissionDenied: false,
                 showVoiceModal: false,
-                selectedArea: 'newtaipei',
+                selectedArea: 'penghu',
                 areas: [
                     { value: 'newtaipei', label: '新北市' },
                     { value: 'penghu',   label: '澎湖縣' }
@@ -60,6 +60,7 @@
                 fishData: [],
                 weatherData: [],
                 forecastData: [],
+                townshipWeather: null,
                 feedData: [],
                 showFishModal: false,
                 savingFish: false,
@@ -80,7 +81,7 @@
                 weatherSkeleton: true,
                 alertCards: { health: false, do: false, ph: false, temp: false },
                 dashboardMetrics: { healthIndex: 0, dissolvedOxygen: 0, phLevel: 0, waterTemp: 0 },
-                weatherDisplay: { icon: 'fa-sun', iconLabel: '晴朗', rain: 15, wind: 12, pressure: 1013 },
+                weatherDisplay: { icon: 'fa-cloud-sun', iconLabel: '載入中', temperature: null, humidity: null, rain: 0, wind: 0, pressure: 1013 },
 
                 /* --- Chart.js instance references --- */
                 _chartHealth: null,
@@ -263,6 +264,8 @@
                         this.metrics.totalFish = fishResponse.data.reduce((sum, fish) => sum + fish.quantity, 0);
                     }
                     await this.loadWeatherData();
+                    await this.loadTownshipWeather();
+                    await this.loadForecastData();
                     if (this.fishData.length > 0) {
                         const healthScores = { excellent: 100, good: 85, fair: 65, poor: 40 };
                         let totalScore = 0, totalWeight = 0;
@@ -296,16 +299,24 @@
 
                     /* --- Update weather placeholder --- */
                     this.weatherSkeleton = false;
-                    if (this.weatherData.length > 0) {
-                        const w = this.weatherData[0];
-                        this.updateWeatherPlaceholder({
-                            temperature: w.temperature,
-                            humidity: w.humidity,
-                            rain: w.humidity > 70 ? 65 : 15,
-                            wind: 12,
-                            pressure: 1013
-                        });
-                    }
+                    const obs = this.weatherData.length > 0 ? this.weatherData[0] : {};
+                    const fc  = this.forecastData.length > 0 ? this.forecastData[0] : {};
+                    const tw  = this.townshipWeather || {};
+                    const weatherText = tw.weather || fc.weather || '';
+                    this.weatherDisplay = {
+                        icon:        weatherText.includes('雨') ? 'fa-cloud-rain'
+                                   : weatherText.includes('陰') ? 'fa-cloud'
+                                   : weatherText.includes('雲') ? 'fa-cloud-sun'
+                                   : weatherText.includes('晴') ? 'fa-sun'
+                                   : 'fa-cloud-sun',
+                        iconLabel:   weatherText || '無資料',
+                        temperature: obs.temperature || tw.temperature || null,
+                        humidity:    obs.humidity    || tw.humidity    || null,
+                        rain:        parseInt(tw.rain) || parseInt(fc.rain) || 0,
+                        wind:        parseInt(tw.wind) || parseInt(fc.wind) || 0,
+                        pressure:    parseInt(obs.pressure) || parseInt(fc.pressure) || 1013
+                    };
+                    console.log('[weatherDisplay] 天氣卡片更新為:', this.weatherDisplay.iconLabel);
 
                     this.$nextTick(() => { this.initKpiCharts(); });
                 } catch (error) {
@@ -386,16 +397,17 @@
             async loadWeatherData() {
                 this.loading = true;
                 try {
-                    let areaParam = this.selectedArea !== 'newtaipei' ? '?area=' + this.selectedArea : '';
-                    let response = await this.makeAPIRequest('/api/weather/data/cwa' + areaParam);
+                    const response = await this.makeAPIRequest('/api/weather/data/cwa?area=' + this.selectedArea);
                     if (response.success && response.data && response.data.length > 0) {
                         this.weatherData = response.data;
                         if (response.data[0].temperature) { this.metrics.waterTemp = response.data[0].temperature; }
                     } else {
-                        response = await this.makeAPIRequest('/api/weather/data');
-                        if (response.success) {
-                            this.weatherData = response.data || [];
-                            if (response.data && response.data[0]) { this.metrics.waterTemp = response.data[0].temperature || 0; }
+                        const fallback = await this.makeAPIRequest('/api/weather/data?area=' + this.selectedArea);
+                        if (fallback.success) {
+                            this.weatherData = fallback.data || [];
+                            if (fallback.data && fallback.data[0]) {
+                                this.metrics.waterTemp = fallback.data[0].temperature || 0;
+                            }
                         }
                     }
                 } catch (error) {
@@ -403,15 +415,93 @@
                 } finally { this.loading = false; }
             },
 
+            async loadTownshipWeather() {
+                try {
+                    const today = new Date().toISOString().slice(0, 10);  // yyyy-mm-dd
+                    const locName = this.selectedArea === 'penghu' ? '馬公市' : '板橋區';
+                    const resp = await axios.get(`${this.apiBase}/api/cwa/datastore`, {
+                        params: {
+                            apikey: 'openclaw_vms_secret_key_2026',
+                            dataset: 'F-D0047-047',
+                            LocationName: locName,
+                            ElementName: '天氣現象,平均溫度,相對濕度,12小時降雨機率,風速,舒適度',
+                            timeFrom: today + 'T00:00:00',
+                            limit: 20,
+                            format: 'json'
+                        },
+                        timeout: 15000
+                    });
+                    if (resp.data && (resp.data.success === 'true' || resp.data.success === true)) {
+                        const records = resp.data.records || (resp.data.result && resp.data.result.records) || {};
+                        const tw = this.parseTownshipForecast(records);
+                        this.townshipWeather = tw;
+                    }
+                } catch (e) {
+                    console.warn('Township weather load error:', e.message);
+                    this.townshipWeather = null;
+                }
+            },
+
+            parseTownshipForecast(records) {
+                if (!records || !records.Locations) return null;
+                const loc = records.Locations[0];
+                if (!loc || !loc.Location) return null;
+                const town = loc.Location[0];
+                if (!town || !town.WeatherElement) return null;
+
+                const now = new Date();
+                const todayStr = now.toDateString();
+                const result = { temperature: null, humidity: null, rain: null, weather: null, wind: null, comfort: null };
+
+                for (const el of town.WeatherElement) {
+                    const name = el.ElementName || '';
+                    const times = (el.Time || []);
+                    if (times.length === 0) continue;
+
+                    // 找今天資料，沒有則取第一筆
+                    let found = times[0];
+                    for (const t of times) {
+                        const start = new Date(t.StartTime || t.DataTime || '');
+                        if (start.toDateString() === todayStr) { found = t; break; }
+                    }
+
+                    // CWA F-D0047 系列用 ElementValue[0].Weather / .Temperature；警報類用 Parameter.ParameterName
+                    let val = '';
+                    const ev = (found.ElementValue || [])[0];
+                    if (ev) {
+                        val = ev.Weather || ev.Temperature || ev.RelativeHumidity
+                           || ev.ProbabilityOfPrecipitation || ev.WindSpeed || ev.ParameterName || '';
+                    }
+                    if (!val) {
+                        val = (found.Parameter || {}).ParameterName || '';
+                    }
+
+                    if (name === 'Wx' || name.includes('天氣'))
+                        result.weather = val;
+                    else if (name === 'T' || name === 'AT' || name.includes('溫度'))
+                        result.temperature = val;
+                    else if (name === 'RH' || name.includes('濕度'))
+                        result.humidity = val;
+                    else if (name === 'PoP12h' || name === 'PoP' || name.includes('降雨') || name.includes('PoP'))
+                        result.rain = val;
+                    else if (name === 'WS' || name === 'Wind' || name.includes('風速'))
+                        result.wind = val;
+                    else if (name === 'CI' || name === 'MaxCI' || name.includes('舒適'))
+                        result.comfort = val;
+                }
+                console.log('[townshipWeather] 澎湖馬公市今日預報:', JSON.stringify(result));
+                return result;
+            },
+
             async loadForecastData() {
                 this.loading = true;
                 try {
-                    let areaParam = this.selectedArea !== 'newtaipei' ? 'area=' + this.selectedArea + '&' : '';
-                    let response = await this.makeAPIRequest('/api/weather/forecast?' + areaParam + 'type=week');
+                    const response = await this.makeAPIRequest('/api/weather/forecast?area=' + this.selectedArea + '&type=week');
                     if (response.success) {
                         let rawData = response.data;
                         let parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-                        let result = typeof parsed.result === 'string' ? JSON.parse(parsed.result) : parsed;
+                        let result = parsed.result || parsed;
+                        if (typeof result === 'string') result = JSON.parse(result);
                         this.forecastData = this.parseForecastData(result.records);
                     }
                 } catch (error) {
@@ -440,6 +530,12 @@
                             tempData[startTime].weather = time.Parameter?.ParameterName;
                         } else if (elementName === '降雨機率' || elementName === 'PoP') {
                             tempData[startTime].rain = time.Parameter?.ParameterName;
+                        } else if (elementName === '相對濕度' || elementName === 'RH') {
+                            tempData[startTime].humidity = time.Parameter?.ParameterName;
+                        } else if (elementName === '風速' || elementName === 'WS') {
+                            tempData[startTime].wind = time.Parameter?.ParameterName;
+                        } else if (elementName === '舒適度' || elementName === 'CI') {
+                            tempData[startTime].comfort = time.Parameter?.ParameterName;
                         }
                     }
                 }
@@ -447,7 +543,9 @@
                     forecast.push({
                         time: this.formatDate(d.time), temp: d.temp || '-',
                         maxTemp: d.maxTemp || '-', minTemp: d.minTemp || '-',
-                        weather: d.weather || '-', rain: d.rain || '-'
+                        weather: d.weather || '-', rain: d.rain || '-',
+                        humidity: d.humidity || '-', wind: d.wind || '-',
+                        comfort: d.comfort || '-'
                     });
                 });
                 return forecast;
@@ -532,7 +630,15 @@
                 /* Weather placeholder update */
                 if (data.weather) {
                     this.weatherSkeleton = false;
-                    this.updateWeatherPlaceholder(data.weather);
+                    this.weatherDisplay = {
+                        icon:        data.weather.icon   || 'fa-sun',
+                        iconLabel:   data.weather.iconLabel || data.weather.weather || '晴朗',
+                        temperature: data.weather.temperature ?? null,
+                        humidity:    data.weather.humidity    ?? null,
+                        rain:        data.weather.rain  ?? 0,
+                        wind:        data.weather.wind  ?? 0,
+                        pressure:    data.weather.pressure ?? 1013
+                    };
                 }
 
                 /* Chart updates */
@@ -606,31 +712,6 @@
                 this.testMode = true;
                 this.testType = 'alert';
                 console.log('[testDashboardUpdate] 模擬警報已啟用。卡片應出現紅色邊框 + animate-pulse 效果。');
-            },
-
-            /* --- Weather placeholder update --- */
-            updateWeatherPlaceholder(data) {
-                if (!data) return;
-                this.weatherSkeleton = false;
-                let icon = 'fa-cloud-sun';
-                if (data.rain > 70) icon = 'fa-cloud-rain';
-                else if (data.rain > 40) icon = 'fa-cloud';
-                else if (data.temperature > 32) icon = 'fa-sun';
-
-                this.weatherDisplay = {
-                    icon: data.icon || icon,
-                    iconLabel: data.iconLabel || this.getWeatherLabel(data),
-                    rain: data.rain ?? 0,
-                    wind: data.wind ?? 0,
-                    pressure: data.pressure ?? 1013
-                };
-            },
-
-            getWeatherLabel(data) {
-                if (data.rain > 70) return '暴雨';
-                if (data.rain > 40) return '陰雨';
-                if (data.temperature > 30) return '炎熱';
-                return '晴朗';
             },
 
             /* --- KPI Doughnut Charts --- */
