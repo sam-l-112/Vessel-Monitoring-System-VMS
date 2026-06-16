@@ -348,7 +348,7 @@
                                         <div class="card-body p-0">
                                             <div v-if="alertMessagesLoading" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div><small class="ms-2 text-muted">載入 NCDR 示警訊息中...</small></div>
                                             <div v-else-if="alertMessagesError" class="error-message m-3"><i class="fas fa-exclamation-triangle"></i> {{ alertMessagesError }}</div>
-                                            <div v-else-if="filteredMessages.length === 0" class="empty-state"><i class="fas fa-check-circle text-success"></i><h4>暫無 NCDR 示警訊息</h4><p>尚無 NCDR API key 或目前無災防示警</p></div>
+                                            <div v-else-if="filteredMessages.length === 0" class="empty-state"><i class="fas fa-check-circle text-success"></i><h4>暫無 NCDR 示警訊息</h4><p>目前無災防示警</p></div>
                                             <div v-else class="table-responsive">
                                                 <table class="table table-hover mb-0">
                                                     <thead><tr><th style="width:140px">發送時間</th><th style="width:80px">類型</th><th>標題</th><th style="width:70px">severity</th><th style="width:70px">緊急度</th><th style="width:100px">地區</th></tr></thead>
