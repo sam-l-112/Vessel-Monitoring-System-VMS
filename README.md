@@ -1,4 +1,4 @@
-# Vessel Monitoring System (VMS)我是王耀銜
+# Vessel Monitoring System (VMS)
 
 A comprehensive monitoring system for aquaculture operations, providing real-time data tracking and analysis for fish farming activities.
 
